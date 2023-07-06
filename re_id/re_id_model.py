@@ -5,6 +5,7 @@ import os
 import random
 import cv2
 import faiss
+import faiss.contrib.torch_utils
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import albumentations as A
@@ -17,7 +18,6 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from collections import Counter
 from PIL import Image
-
 
 class ETHZ_GALLERY(Dataset):
     def __init__(self, gallery_path, transform):
@@ -43,7 +43,7 @@ class ETHZ_GALLERY(Dataset):
 
         return gallery_image, gallery_label
         
-    
+
 class ETHZ_QUERY(Dataset):
     def __init__(self, query_path, transform):
         super().__init__()
@@ -116,20 +116,19 @@ class ETHZ(Dataset):
                 set_images[idx] = torch.permute(set_images[idx], (2,0,1))
 
         return set_images[0], set_images[1], set_images[2], anchor_id
+     
 
-        
-        
 class ResNet_Triplet(nn.Module):
-    def __init__(self, embedding_dim)):
+    def __init__(self, embedding_dim):
         super().__init__()
         self.resnet50 = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
-        self.resnet50.fc = nn.Linear(in_features=2048, out_features=embedding_dim), bias=True)
+        self.resnet50.fc = nn.Linear(in_features=2048, out_features=embedding_dim, bias=True)
      
     def forward(self, x):
         triplet = self.resnet50(x)
         return triplet
         
-
+        
 class MobileNetV3_Triplet(nn.Module):
     def __init__(self, embedding_dim):
         super().__init__()
@@ -139,12 +138,13 @@ class MobileNetV3_Triplet(nn.Module):
     def forward(self, x):
         embedding_feature = self.mobilenetv3(x)
         return embedding_feature
-        
 
 
 def re_id_inference(model, detected_query, gallery_dataset, emd_dim): 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    faiss_index = faiss.IndexFlatL2(emd_dim)
+    
+    res = faiss.StandardGpuResources()
+    faiss_index = faiss.GpuIndexFlatIP(res, emd_dim)
     model = model.to(device)
     model.eval()
 
@@ -154,16 +154,17 @@ def re_id_inference(model, detected_query, gallery_dataset, emd_dim):
         for gallery, labels in gallery_dataset:
             gallery = gallery.to(device)
 
-            outputs = model(gallery).cpu().numpy() # (8, 436)
+            outputs = model(gallery).cpu().numpy() 
+            faiss.normalize_L2(outputs)
+            faiss_index.add(outputs)
             
-            for out, label in zip(outputs, labels):
-                faiss_index.add(out.reshape(1,-1)) # (1, 436)
-                gallery_list.append(label) 
+            for label in labels:
+                gallery_list.append(label)
                 
     with torch.no_grad():
         for query in detected_query:
             query = query.to(device)
-            outputs = model(query).cpu().numpy()
+            outputs = model(query)
 
             _, I = faiss_index.search(outputs, 3)
             for x in I:
@@ -177,7 +178,7 @@ def person_query_lst(frame, results):
     img = frame
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     tf = A.Compose([A.Resize(224,224),
-                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
+                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
 
     person_img_lst = []
     person_idx_lst = []
@@ -202,8 +203,7 @@ def shot_person_query_lst(frame, results):
     img = frame
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     tf = A.Compose([A.Resize(224,224),
-                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
-
+                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
     person_img_lst = []
     x1, y1, x2, y2, c, l = results
     x1, y1, x2, y2, l = int(x1), int(y1), int(x2), int(y2), int(l)
@@ -218,7 +218,7 @@ def shot_person_query_lst(frame, results):
 
     return person_img_lst
     
-# Hard Voting
+
 def hard_voting(matched_list):
     final = []
     tmp = []
