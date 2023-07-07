@@ -138,6 +138,17 @@ class MobileNetV3_Triplet(nn.Module):
     def forward(self, x):
         embedding_feature = self.mobilenetv3(x)
         return embedding_feature
+    
+    
+class MobileNetV3_TripletV2(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mobilenetv3 = models.mobilenet_v3_large(weights=MobileNet_V3_Large_Weights.DEFAULT)
+        self.mobilenetv3.classifier = nn.Sequential()
+     
+    def forward(self, x):
+        embedding_feature = self.mobilenetv3(x)
+        return embedding_feature
 
 
 def re_id_inference(model, detected_query, gallery_dataset, emd_dim): 
