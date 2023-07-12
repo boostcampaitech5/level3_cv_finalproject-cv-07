@@ -5,9 +5,7 @@ import cv2
 import numpy as np
 import tqdm
 import faiss
-
-sys.path.append('/opt/ml/total')
-from association import *
+from re_id import *
 
 
 classes_lst = {1:'ball', 2:'made', 3:'person', 4: 'rim', 5:'shoot'}
@@ -158,27 +156,28 @@ def make_predicted_video(detect_model, re_id, video_path, save_path, emb_dim=960
             #사람, 슛 제외한 label 그리기
             side_outs = side_results(out)
             draw_img = draw_bbox_label(id_img, side_outs, thr=0.5)            
-            cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB)
 
-                
-            #scor board 그리기
-            if len(re_id.player_dict) <=5:
-                cv2.rectangle(draw_img, (30,30), (380,250),(0,0,0), -1)
-            else:
-                cv2.rectangle(draw_img, (30,30), (700,300),(0,0,0), -1)
-            
+            #scor board 동적 그리기
             s_w, s_h = (50,65)
             ply_num = 0
             
-            cv2.putText(draw_img, 'Score Board', (s_w,s_h), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
-            
-            for i in sorted(re_id.player_dict.keys()):
-                if ply_num < 5:
-                    cv2.putText(draw_img, f'ID-{re_id.player_dict[i]} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (50,105+ply_num*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+            if len(re_id.player_dict.keys()) <=5:
+                cv2.rectangle(draw_img, (30,30), (510,280),(0,0,0), -1)
+                cv2.putText(draw_img, 'Score Board', (s_w,s_h), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
+                for i in sorted(re_id.player_dict.keys()):
+                    cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (50,105+ply_num*40), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
                     ply_num+=1
-                else:
-                    cv2.putText(draw_img, f'ID-{re_id.player_dict[i]} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (400,105+(ply_num-5)*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
-    
+                
+            else:
+                cv2.rectangle(draw_img, (30,30), (700,300),(0,0,0), -1)
+                cv2.putText(draw_img, 'Score Board', (s_w,s_h), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
+                for i in sorted(re_id.player_dict.keys()):
+                    if ply_num < 5:
+                        cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (50,105+ply_num*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+                        ply_num+=1
+                    else:
+                        cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (400,105+(ply_num-5)*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+            
                     
             # d_h = draw_img.shape[0]-100 
             # for i in re_id.player_dict.keys():
@@ -189,7 +188,7 @@ def make_predicted_video(detect_model, re_id, video_path, save_path, emb_dim=960
             # draw_img = cv2.putText(draw_img, f'ID3-Shoot_Try: {re_id.player_dict[3].stm}  Made: {re_id.player_dict[3].smm}', (1100,draw_img.shape[0]-30), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
             # draw_img = cv2.putText(draw_img, f'ID2-Shoot_Try: {re_id.player_dict[2].stm}  Made: {re_id.player_dict[2].smm}', (1100,draw_img.shape[0]-100), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
             # draw_img = cv2.putText(draw_img, f'Shot_ID:{re_id.shot_id}_{deep_shot_mode}', (30,100), cv2.FONT_ITALIC, 2, (0, 0, 0), thickness=10, lineType=cv2.LINE_AA)
-                
+            draw_img = cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB)
             video_out.write(draw_img)
             pbar.update(1)
             frame_num+=1
