@@ -40,7 +40,7 @@ def make_predicted_video(detect_model, re_id, video_path, save_path, emb_dim=960
     shot_made_try = False
     shot_made_done = False
     deep_shot_mode = False
-    first_frame = False
+    first_frame = True
     exit_frame_num = -1
     shot_cnt=0
     
