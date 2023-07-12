@@ -64,7 +64,7 @@ class ReId:
         self.model.load_state_dict(torch.load(checkpoint), strict=True)         
         self.model = self.model.to("cuda") if torch.cuda.is_available() else self.model.to("cpu")
         
-        random_tensor = torch.randn(1, 3, 224, 224)
+        random_tensor = torch.randn(1, 3, 224, 224).to("cuda")
         embedding_dim = self.model(random_tensor).shape[-1]
         
         self.player_dict = dict()
