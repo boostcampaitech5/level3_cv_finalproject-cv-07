@@ -59,17 +59,20 @@ class Player:
         self.smm+=1
 
 class ReId:
-    def __init__(self, model, checkpoint, person_thr=0.6, cosine_thr=0.5, embedding=960) -> None:
+    def __init__(self, model, checkpoint, person_thr=0.6, cosine_thr=0.5) -> None:
         self.model = model
         self.model.load_state_dict(torch.load(checkpoint), strict=True)         
         self.model = self.model.to("cuda") if torch.cuda.is_available() else self.model.to("cpu")
+        
+        random_tensor = torch.randn(1, 3, 224, 224)
+        embedding_dim = self.model(random_tensor).shape[-1]
         
         self.player_dict = dict()
         self.person_thr = person_thr
         self.cosine_thr = cosine_thr
         
         res = faiss.StandardGpuResources()
-        self.faiss_index = faiss.GpuIndexFlatIP(res, embedding)
+        self.faiss_index = faiss.GpuIndexFlatIP(res, embedding_dim)
         self.faiss_index = faiss.IndexIDMap(self.faiss_index)
         
     def _get_transform(self):
