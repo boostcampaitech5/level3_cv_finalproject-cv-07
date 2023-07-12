@@ -94,7 +94,23 @@ class ReId:
                                             (0.26862954, 0.26130258, 0.27577711)),      ## normalize for openclip model
                                 ToTensorV2(),
                                 ])
-
+        
+    def shot_re_id_inference(self, frame, results): 
+        person_img_lst = self.shot_person_query_lst(frame, results)
+        detected_query = person_img_lst
+        device = 'cuda'
+        detected_query_stack = torch.stack(detected_query, dim=0).to(device)
+        
+        #이미지 vectorize
+        with torch.no_grad():
+            detected_query_vector = self.model(detected_query_stack).detach().cpu().numpy()                       
+        
+        # 단위백터로 정규화
+        faiss.normalize_L2(detected_query_vector)
+        C, I = self.faiss_index.search(detected_query_vector, 1)
+        print(C)
+        return I[0,0]
+    
     def re_id_process(self, frame, results, frame_num, first_frame):
 
         # 사람 객체 detection에서 찾은 후 query로 만들기
@@ -208,3 +224,20 @@ class ReId:
         return final
     
     
+    def shot_person_query_lst(self, frame, results):
+        img = frame
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        tf = A.Compose([A.Resize(224,224),
+                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
+        person_img_lst = []
+        x1, y1, x2, y2, c, l = results
+        x1, y1, x2, y2, l = int(x1), int(y1), int(x2), int(y2), int(l)
+        person_img = img[y1:y2, x1:x2, :]
+        transformed = tf(image=person_img)
+        tf_person_img = transformed['image']
+        tf_person_img = tf_person_img.astype(np.float32)
+        tf_person_img = torch.from_numpy(tf_person_img)
+        tf_person_img = torch.permute(tf_person_img, (2,0,1))
+        person_img_lst.append(tf_person_img)
+        return person_img_lst
+
