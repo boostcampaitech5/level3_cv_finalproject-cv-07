@@ -3,7 +3,6 @@ import timm
 import open_clip
 import numpy as np
 import torch.nn as nn
-              
 
 class MobileNetV3(nn.Module):
     def __init__(self):
@@ -77,32 +76,15 @@ class ConvNextV2_L(nn.Module):
         embedding_feature = self.convnextv2_l(x)
         return embedding_feature
     
-class ConvNextV2_H(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.convnextv2_h = timm.create_model('convnextv2_huge.fcmae_ft_in1k')
-     
-    def forward(self, x):
-        embedding_feature = self.convnextv2_h(x)
-        return embedding_feature
-    
-
-'''
-Code reference : https://github.com/KonradHabel/clip_reid
-'''
-
 class TimmModel(nn.Module):
-
     def __init__(self, 
                  model_name='convnextv2_huge.fcmae_ft_in1k',
                  pretrained=True):
         super(TimmModel, self).__init__()
-        
         self.model = timm.create_model(model_name, pretrained=pretrained, num_classes=0) 
         self.model.logit_scale = torch.nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
             
     def forward(self, img1, img2=None):
-        
         if img2 is not None:
             images = torch.cat([img1, img2], dim=0)
             image_features = self.model(images)
@@ -118,17 +100,13 @@ class TimmModel(nn.Module):
         return image_features
     
 class OpenClipModel(nn.Module):
-
     def __init__(self,
                  model_name='ViT-L-14',
                  pretrained=True,
                  remove_proj=True):
         super(OpenClipModel, self).__init__()
-        
         self.model_name = model_name
-        
-        self.model = open_clip.create_model(model_name,
-                                            pretrained=pretrained)  
+        self.model = open_clip.create_model(model_name, pretrained=pretrained)  
          
         # delete text parts of clip model
         del(self.model.transformer)
@@ -153,7 +131,6 @@ class OpenClipModel(nn.Module):
             return self.model.visual.image_size
     
     def forward(self, img1, img2=None):
-        
         if img2 is not None:
             images = torch.cat([img1, img2], dim=0)
             image_features = self.model.encode_image(images)
