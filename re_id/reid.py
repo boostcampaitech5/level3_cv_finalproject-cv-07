@@ -177,7 +177,7 @@ class ReId:
     
         return person_idx_lst, person_img_lst
 
-    def hard_voting(matched_list):
+    def hard_voting(self, matched_list):
         final = []
         for list in matched_list:
             tmp = []
