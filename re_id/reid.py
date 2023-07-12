@@ -1,14 +1,14 @@
-from torch.nn.functional import cosine_similarity
 import torch
-from torchvision.transforms import functional as F
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
-from albumentations.core.transforms_interface import ImageOnlyTransform
 import cv2
 import numpy as np
 import faiss
+import albumentations as A
+from torch.nn.functional import cosine_similarity
+from torchvision.transforms import functional as F
+from albumentations.pytorch import ToTensorV2
+from albumentations.core.transforms_interface import ImageOnlyTransform
 from collections import Counter
-# from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans
 
 class RectResize(ImageOnlyTransform):
     def __init__(self,
@@ -17,20 +17,16 @@ class RectResize(ImageOnlyTransform):
                  interpolate=cv2.INTER_LINEAR_EXACT,
                  always_apply=False,
                  p=1.0):
-        
         super(RectResize, self).__init__(always_apply, p)
         self.size = size
         self.padding_value = padding_value
         self.interpolate = interpolate
 
     def apply(self, image, **params):
-
         h, w, c = image.shape
-        
         if w == h:
             img_resize = cv2.resize(image, dsize=(self.size[1], self.size[0]), interpolation = self.interpolate)
             return img_resize
-        
         else:
             img_pad = np.full((self.size[0], self.size[1], c), self.padding_value, dtype=np.uint8)
             if h > w:
@@ -50,7 +46,6 @@ class RectResize(ImageOnlyTransform):
     def get_transform_init_args_names(self):
         return ("size", "padding_value", "interpolate")
 
-
 class Player:
     def __init__(self, id):
         self.id = id
@@ -63,22 +58,11 @@ class Player:
     def shot_made_plus(self):
         self.smm+=1
 
-
 class ReId:
     def __init__(self, model, checkpoint, person_thr=0.6, cosine_thr=0.5, embedding=960) -> None:
-
         self.model = model
-        
-        # load pretrained Checkpoint     
-        model_state_dict = torch.load(checkpoint)
-        self.model.load_state_dict(model_state_dict, strict=True)    
-      
-        # Model to device 'cuda' if it is avaliable  
+        self.model.load_state_dict(torch.load(checkpoint), strict=True)         
         self.model = self.model.to("cuda") if torch.cuda.is_available() else self.model.to("cpu")
-        
-        # self.gallery = torch.Tensor()       ## empty gallery
-        # # self.new_ID = 0
-        # self.label = []
         
         self.player_dict = dict()
         self.person_thr = person_thr
@@ -90,53 +74,41 @@ class ReId:
         
     def _get_transform(self):
         return A.Compose([RectResize(size=(224, 224) , padding_value=0, interpolate=cv2.INTER_LINEAR_EXACT, p=1.0),
-                                A.Normalize((0.48145466, 0.4578275, 0.40821073), 
-                                            (0.26862954, 0.26130258, 0.27577711)),      ## normalize for openclip model
-                                ToTensorV2(),
-                                ])
+                          A.Normalize((0.48145466, 0.4578275, 0.40821073), 
+                                      (0.26862954, 0.26130258, 0.27577711)),
+                          ToTensorV2()])
         
     def shot_re_id_inference(self, frame, results): 
         person_img_lst = self.shot_person_query_lst(frame, results)
         detected_query = person_img_lst
-        device = 'cuda'
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         detected_query_stack = torch.stack(detected_query, dim=0).to(device)
-        
-        #이미지 vectorize
+    
         with torch.no_grad():
             detected_query_vector = self.model(detected_query_stack).detach().cpu().numpy()                       
         
-        # 단위백터로 정규화
         faiss.normalize_L2(detected_query_vector)
         C, I = self.faiss_index.search(detected_query_vector, 1)
-        print(C)
         return I[0,0]
     
     def re_id_process(self, frame, results, frame_num, first_frame):
-
-        # 사람 객체 detection에서 찾은 후 query로 만들기
         person_idx_lst, person_img_lst = self.person_query_lst(frame, results, thr=self.person_thr)
         detected_query = person_img_lst
-        device = 'cuda'
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         detected_query_stack = torch.stack(detected_query, dim=0).to(device)
 
-        #이미지 vectorize
         with torch.no_grad():
             detected_query_vector = self.model(detected_query_stack).detach().cpu().numpy()                       
         
-        # 단위백터로 정규화
         faiss.normalize_L2(detected_query_vector)
 
-        #첫 번째 프레임일 경우
         if first_frame:
             ids = np.arange(len(detected_query))
-        
-            # faiss_index에 query와 id를 매칭하며 add
             self.faiss_index.add_with_ids(detected_query_vector, ids)
             matched_list = ids.tolist()
             first_frame = False
             
-            # id만큼 dict에 player객체 생성
             id_dict = dict()
             
             for i in ids:
@@ -152,17 +124,14 @@ class ReId:
             else:
                 C, I = self.faiss_index.search(detected_query_vector, 5)
             
-            #cosine_thr보다 낮으면 -1 ID 부여
             I = np.where(C > self.cosine_thr, I, -1)
             matched_list = self.hard_voting(I)
 
-            # 60프레임 중 5번만 faiss_index에 저장하기 
             exist_id_idx = C[:,0] >= self.cosine_thr
             if frame_num%12==0:
                 exist_ids = np.array(matched_list)[exist_id_idx]
                 self.faiss_index.add_with_ids(detected_query_vector[exist_id_idx], exist_ids)
-
-            # id에 맞는 bbox를 dict에 매칭하기
+            
             id_dict = dict()
             for idx, id in enumerate(matched_list):
                 if id_dict.get(id) != None:
@@ -178,14 +147,12 @@ class ReId:
                         id_dict[id] = results[person_idx_lst[idx]]
             
             return id_dict
-    
-    
-        
+     
     def person_query_lst(self, frame, results,thr):
         img = frame
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         tf = A.Compose([A.Resize(224,224),
-                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
+                        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
     
         person_img_lst = []
         person_idx_lst = []
@@ -207,7 +174,6 @@ class ReId:
     
         return person_idx_lst, person_img_lst
 
-    
     def hard_voting(matched_list):
         final = []
         for list in matched_list:
@@ -222,7 +188,6 @@ class ReId:
             count = Counter(tmp)
             final.append(count.most_common(1)[0][0])
         return final
-    
     
     def shot_person_query_lst(self, frame, results):
         img = frame
@@ -240,4 +205,3 @@ class ReId:
         tf_person_img = torch.permute(tf_person_img, (2,0,1))
         person_img_lst.append(tf_person_img)
         return person_img_lst
-
