@@ -22,10 +22,10 @@ id_color = [
 ]
 
 
-def make_predicted_video(detect_model, re_id_model, video_path, save_path, emb_dim=960):
+def make_predicted_video(detect_model, re_id, video_path, save_path, emb_dim=960):
 
     cap = cv2.VideoCapture(video_path)
-
+    
     if not cap.isOpened():
         print("Videio open failed!")
 
@@ -33,29 +33,21 @@ def make_predicted_video(detect_model, re_id_model, video_path, save_path, emb_d
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     video_out = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-
-    #player 관리
-    player_dict = dict()
-    id_max = 4
-    deep_shot_mode = False
-    shot_id = -1
-    exit_frame_num = -1
     
+    #player 관리
     shot_try_on = False
     shot_try_done = False
     shot_made_try = False
     shot_made_done = False
-    cnt=0
-
+    deep_shot_mode = False
+    first_frame = False
+    exit_frame_num = -1
+    shot_cnt=0
+    
     pre_rim_data = []
 
     total_frames_num = cap.get(cv2.CAP_PROP_FRAME_COUNT)
     frame_num = cap.get(cv2.CAP_PROP_POS_FRAMES)
-
-    res = faiss.StandardGpuResources()
-    faiss_index = faiss.GpuIndexFlatIP(res, emb_dim)
-    faiss_index = faiss.IndexIDMap(faiss_index)
-    first_frame = True
     
     with tqdm.tqdm(total = total_frames_num) as pbar:
         while total_frames_num != frame_num:
@@ -73,8 +65,7 @@ def make_predicted_video(detect_model, re_id_model, video_path, save_path, emb_d
             
             #### Re-ID 시작 ####
             if (3 in results[:,-1]):
-                id_dict = re_id_process(re_id_model, img, results, faiss_index=faiss_index, player_dict=player_dict, frame_num=frame_num, first_frame=first_frame, person_thr=0.5, cosine_thr=0.5)
-            
+                id_dict = re_id.re_id_process(img, results, frame_num, first_frame)
                 if first_frame:
                     first_frame = False
             else:
@@ -114,7 +105,7 @@ def make_predicted_video(detect_model, re_id_model, video_path, save_path, emb_d
                             iou_id.append(img_id)
                         max_ps_idx = np.argmax(iou_lst)
                         
-                        shot_id =iou_id[max_ps_idx]
+                        re_id.shot_id =iou_id[max_ps_idx]
                         img = draw_bbox_label(img, [sh_data], thr=shot_thr)
                         deep_shot_mode = True
                         exit_frame_num = frame_num + fps
@@ -129,11 +120,11 @@ def make_predicted_video(detect_model, re_id_model, video_path, save_path, emb_d
                     shot_try_done = False
                     shot_made_try = False
                     shot_made_done = False  
-                    cnt=0
+                    shot_cnt = 0
                     
                 #조건 만족하면 슛시도 인정
                 if not shot_try_done and shot_try_on:
-                    player_dict[shot_id].shot_try_plus()
+                    re_id.player_dict[re_id.shot_id].shot_try_plus()
                     shot_try_done = True    
                     deep_shot_mode = False
                 # 3가지 조건 만족하면 득점 인정
@@ -142,14 +133,17 @@ def make_predicted_video(detect_model, re_id_model, video_path, save_path, emb_d
                         shot_made_try = True
 
                     if shot_made_try and shot_made_check2(ball_data, rim_data):
-                        cnt+=1
+                        shot_cnt+=1
                     
-                    if cnt >=2 and shot_made_check3(ball_data, rim_data):
-                        player_dict[shot_id].shot_made_plus()
+                    if shot_cnt >=2 and shot_made_check3(ball_data, rim_data):
+                        re_id.player_dict[re_id.shot_id].shot_made_plus()
                         shot_made_done=True
-                        cnt=0
-                        shot_id = -1
+                        shot_cnt=0
+                        re_id.shot_id = -1
             
+            
+                        
+                        
                 #골대 위치 저장
                 pre_rim_data = rim_data.clone()
             #### 슛시도 및 득점 인식 알고리즘 종료####
@@ -164,21 +158,37 @@ def make_predicted_video(detect_model, re_id_model, video_path, save_path, emb_d
             #사람, 슛 제외한 label 그리기
             side_outs = side_results(out)
             draw_img = draw_bbox_label(id_img, side_outs, thr=0.5)            
-            draw_img = cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB)
+            cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB)
 
                 
-            #score 그리기
-            draw_img = cv2.rectangle(draw_img, (0,927), (1920,1080),(255,255,255), -1)
+            #scor board 그리기
+            if len(re_id.player_dict) <=5:
+                cv2.rectangle(draw_img, (30,30), (380,250),(0,0,0), -1)
+            else:
+                cv2.rectangle(draw_img, (30,30), (700,300),(0,0,0), -1)
             
+            s_w, s_h = (50,65)
+            ply_num = 0
+            
+            cv2.putText(draw_img, 'Score Board', (s_w,s_h), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
+            
+            for i in sorted(re_id.player_dict.keys()):
+                if ply_num < 5:
+                    cv2.putText(draw_img, f'ID-{re_id.player_dict[i]} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (50,105+ply_num*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+                    ply_num+=1
+                else:
+                    cv2.putText(draw_img, f'ID-{re_id.player_dict[i]} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (400,105+(ply_num-5)*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+    
+                    
             # d_h = draw_img.shape[0]-100 
-            # for i in player_dict.keys():
-            #     draw_img = cv2.putText(draw_img, f'ID{i}-Shoot_Try: {player_dict[i].stm}  Goal: {player_dict[i].smm}', (30,d_h+(i*70)), cv2.FONT_ITALIC, 1.5, id_color[i], thickness=5, lineType=cv2.LINE_AA)
+            # for i in re_id.player_dict.keys():
+            #     draw_img = cv2.putText(draw_img, f'ID{i}-Shoot_Try: {re_id.player_dict[i].stm}  Goal: {re_id.player_dict[i].smm}', (30,d_h+(i*70)), cv2.FONT_ITALIC, 1.5, id_color[i], thickness=5, lineType=cv2.LINE_AA)
 
-            draw_img = cv2.putText(draw_img, f'ID1-Shoot_Try: {player_dict[1].stm}  Made: {player_dict[1].smm}', (30,draw_img.shape[0]-30), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
-            draw_img = cv2.putText(draw_img, f'ID0-Shoot_Try: {player_dict[0].stm}  Made: {player_dict[0].smm}', (30,draw_img.shape[0]-100), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
-            draw_img = cv2.putText(draw_img, f'ID3-Shoot_Try: {player_dict[3].stm}  Made: {player_dict[3].smm}', (1100,draw_img.shape[0]-30), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
-            draw_img = cv2.putText(draw_img, f'ID2-Shoot_Try: {player_dict[2].stm}  Made: {player_dict[2].smm}', (1100,draw_img.shape[0]-100), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
-            draw_img = cv2.putText(draw_img, f'Shot_ID:{shot_id}_{deep_shot_mode}', (30,100), cv2.FONT_ITALIC, 2, (0, 0, 0), thickness=10, lineType=cv2.LINE_AA)
+            # draw_img = cv2.putText(draw_img, f'ID1-Shoot_Try: {re_id.player_dict[1].stm}  Made: {re_id.player_dict[1].smm}', (30,draw_img.shape[0]-30), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
+            # draw_img = cv2.putText(draw_img, f'ID0-Shoot_Try: {re_id.player_dict[0].stm}  Made: {re_id.player_dict[0].smm}', (30,draw_img.shape[0]-100), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
+            # draw_img = cv2.putText(draw_img, f'ID3-Shoot_Try: {re_id.player_dict[3].stm}  Made: {re_id.player_dict[3].smm}', (1100,draw_img.shape[0]-30), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
+            # draw_img = cv2.putText(draw_img, f'ID2-Shoot_Try: {re_id.player_dict[2].stm}  Made: {re_id.player_dict[2].smm}', (1100,draw_img.shape[0]-100), cv2.FONT_ITALIC, 1.5, (0,0,0), thickness=5, lineType=cv2.LINE_AA)
+            # draw_img = cv2.putText(draw_img, f'Shot_ID:{re_id.shot_id}_{deep_shot_mode}', (30,100), cv2.FONT_ITALIC, 2, (0, 0, 0), thickness=10, lineType=cv2.LINE_AA)
                 
             video_out.write(draw_img)
             pbar.update(1)
@@ -407,16 +417,3 @@ def side_results(results):
     side_idx = (results[:,-1] != 3) & (results[:,-1] != 5)
     side_data = results[side_idx]
     return side_data
-
-
-class Player:
-    def __init__(self, id):
-        self.id = id
-        self.stm=0
-        self.smm=0
-
-    def shot_try_plus(self):
-        self.stm+=1
-
-    def shot_made_plus(self):
-        self.smm+=1
