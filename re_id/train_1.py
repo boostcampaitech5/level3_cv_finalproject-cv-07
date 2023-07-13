@@ -17,29 +17,30 @@ import faiss.contrib.torch_utils
 
 from model import *
 from download_data import config
-from collections import Counter
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from timeit import default_timer as timer
 
 #----------------------------------------------------------------------------------------------------------------------#  
-# Initialization                                                                                                       #
+# Initialization & Data Augmentations                                                                                  #
 #----------------------------------------------------------------------------------------------------------------------# 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 warnings.filterwarnings("ignore")
+tf = A.Compose([A.Resize(224,224),
+                A.Normalize(mean=(0.485, 0.456, 0.407), std=(0.229, 0.224, 0.225))])
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Argument Parser                                                                                                      #
 #----------------------------------------------------------------------------------------------------------------------# 
 parser = argparse.ArgumentParser()
-parser.add_argument('--demo', type=bool, default=True) 
+parser.add_argument('--demo', type=bool, default=False) 
 parser.add_argument('--seed', type=int, default=1) 
-parser.add_argument('--epoch', type=int, default=1) 
+parser.add_argument('--epoch', type=int, default=10) 
 parser.add_argument('--train_batch', type=int, default=64) 
 parser.add_argument('--valid_batch', type=int, default=256) 
 parser.add_argument('--lr', type=float, default=0.001)  
-parser.add_argument('--fp16', type=bool, default=True) 
-parser.add_argument('--model', type=str, default='convnextv2_a') 
+parser.add_argument('--fp16', type=bool, default=False) 
+parser.add_argument('--model', type=str, default='mobilenetv3') 
 parser.add_argument('--scheduler', type=bool, default=False) 
 parser.add_argument('--num_workers', type=int, default=8) 
 args = parser.parse_args()
@@ -147,7 +148,7 @@ class TRAIN(Dataset):
 
     def __getitem__(self, item):
         anchor_name = self.people_list[item]
-        anchor_id = int(anchor_name[:5])
+        anchor_id = int(anchor_name[:3])
         anchor = cv2.imread(os.path.join(self.path, anchor_name))
         anchor = cv2.cvtColor(anchor, cv2.COLOR_BGR2RGB)
         
@@ -159,10 +160,10 @@ class TRAIN(Dataset):
         positive = cv2.cvtColor(positive, cv2.COLOR_BGR2RGB)
 
         negative_name = random.choice(self.people_list) 
-        negative_id = int(negative_name[:5])
+        negative_id = int(negative_name[:3])
         while negative_id == anchor_id:
             negative_name = random.choice(self.people_list) 
-            negative_id = int(negative_name[:5])
+            negative_id = int(negative_name[:3])
         negative = cv2.imread(os.path.join(self.path, negative_name))
         negative = cv2.cvtColor(negative, cv2.COLOR_BGR2RGB)
 
@@ -186,21 +187,27 @@ class TRAIN(Dataset):
                 set_images[idx] = torch.from_numpy(set_images[idx])
                 set_images[idx] = torch.permute(set_images[idx], (2,0,1))
                 
-
         return set_images[0], set_images[1], set_images[2], anchor_id
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Model Configurations                                                                                                 #
 #----------------------------------------------------------------------------------------------------------------------# 
 model_dict = {"convnextv2_a": ConvNextV2_A(),
+              "convnextv2_f": ConvNextV2_F(),
+              "convnextv2_p": ConvNextV2_P(),
+              "convnextv2_n": ConvNextV2_N(),
+              "convnextv2_t": ConvNextV2_T(),
+              "convnextv2_b": ConvNextV2_B(),
+              "convnextv2_l": ConvNextV2_L(),
               "mobilenetv3": MobileNetV3()}
 model = model_dict.get(args.model)
-embedding_dim = 1000
+assert model != None
+embedding_dim = model(torch.randn(1, 3, 224, 224)).shape[-1]
 epochs = args.epoch
 learning_rate = args.lr
 criterion = nn.TripletMarginLoss(margin=1.0)
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
-weight_path = "./results"
+weight_path = "./model_weights"
 lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lambda epoch: 0.95**epoch, verbose=False)
 
 if os.path.isdir(weight_path) == False:
@@ -253,11 +260,11 @@ def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query
         if mAP >= best_mAP:
             print(f"Best mAP is achieved!!")
             print("Saving Best and Latest Model...")
-            torch.save(model.state_dict(), os.path.join(weight_path, f"best.pth"))
+            torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}_best.pth"))
             changes = mAP - best_mAP
             best_mAP = mAP
 
-        torch.save(model.state_dict(), os.path.join(weight_path, f"latest.pth"))
+        torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}_latest.pth"))
         print("All Model Checkpoints Saved!")
         print("----------------------------")
         print(f"Best mAP: {best_mAP:.4f}")
@@ -350,25 +357,20 @@ if __name__ == "__main__":
     print(f"11. Num Workers: {args.num_workers}\n")
 
     if args.demo:
-        tf = A.Compose([A.Resize(224,224),
-                        A.Normalize(mean=(0.485, 0.456, 0.407), std=(0.229, 0.224, 0.225))])
-        path = f"{config.path}/data_reid/reid_training" 
-        gallery_path = f"{config.path}/data_reid/reid_test/gallery"
-        query_path = f"{config.path}/data_reid/reid_test/query"
+        path = "./data/data_reid/reid_training" 
+        gallery_path = "./data/data_reid/reid_test/gallery"
+        query_path = "./data/data_reid/reid_test/query"
     else:
         path = "./data/custom_dataset/training"
         gallery_path = "./data/custom_dataset/gallery"
         query_path = "./data/custom_dataset/query"
         
     avg_width, avg_height, max_width, max_height= get_picture_statistic(image_path=path)
-    print("****Image Statistics****")
+    print("**** Image Statistics ****")
     print(f"Average Width: {avg_width}")
     print(f"Average Height: {avg_height}")
     print(f"Max Width: {max_width}")
-    print(f"Max Height: {max_height}")
-    print()
-
-    total_gallery_images = len(os.listdir(gallery_path))
+    print(f"Max Height: {max_height}\n")
 
     train_dataset = TRAIN(path, tf)
     query_dataset = QUERY(query_path, tf)
@@ -377,6 +379,8 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=args.train_batch, shuffle=True,  num_workers=args.num_workers)
     query_loader = DataLoader(query_dataset, batch_size=args.valid_batch, shuffle=False, num_workers=args.num_workers)
     gallery_loader = DataLoader(gallery_dataset, batch_size=args.valid_batch, shuffle=False, num_workers=args.num_workers)
+
+    total_gallery_images = len(os.listdir(gallery_path))
     
     train(model=model,
           epochs=args.epoch,
@@ -391,6 +395,3 @@ if __name__ == "__main__":
           topk=total_gallery_images,
           scheduler=args.scheduler,
           fp16=args.fp16)
-    
-
-   
