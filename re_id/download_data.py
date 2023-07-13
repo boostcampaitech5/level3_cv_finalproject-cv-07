@@ -33,7 +33,7 @@ if not os.path.exists(config.path):
     os.mkdir(os.path.join(config.path, "custom_dataset", "query"))
     os.mkdir(os.path.join(config.path, "custom_dataset", "training"))
 else:
-    print("Custom dataset initialization is already set.")
+    print("Custom dataset path is already established.")
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Download                                                                                                             #
@@ -56,6 +56,8 @@ if not os.path.isfile("{}/synergyreid_data.zip".format(config.path)):
     
     shutil.rmtree("{}/player-reidentification-challenge-master".format(config.path)) 
     os.remove("{}/reid_challenge.zip".format(config.path))
+else:
+    print("Demo dataset is already downloaded. Moving to next step...")
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Unzip & Clean Up                                                                                                             #
@@ -66,7 +68,6 @@ print("Extracting zip file...")
 with ZipFile(zip_file) as z:
     z.extractall(path=config.path)
 
-os.remove(zip_file)
 shutil.rmtree(f"{config.path}/__MACOSX")
 
 print("Extraction Completed!\n")
