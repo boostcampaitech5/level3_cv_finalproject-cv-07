@@ -3,7 +3,18 @@ import timm
 import open_clip
 import numpy as np
 import torch.nn as nn
+import torchvision.models as models
+from torchvision.models.squeezenet import SqueezeNet1_1_Weights
 
+class SqueezeNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.squeezenet = models.squeezenet1_1(weights=SqueezeNet1_1_Weights.IMAGENET1K_V1)
+    
+    def forward(self, x):
+        embedding_feature = self.squeezenet(x)
+        return embedding_feature
+        
 class MobileNetV3(nn.Module):
     def __init__(self):
         super().__init__()
