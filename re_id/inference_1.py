@@ -14,7 +14,15 @@ from timeit import default_timer as timer
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
+#----------------------------------------------------------------------------------------------------------------------#  
+# Initialization & Data Augmentations                                                                                  #
+#----------------------------------------------------------------------------------------------------------------------# 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 warnings.filterwarnings("ignore")
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark_enabled = True
+tf = A.Compose([A.Resize(224,224),
+                A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Argumment Parser                                                                                                     #
@@ -38,13 +46,13 @@ model_dict = {"convnextv2_a": ConvNextV2_A(),
               "convnextv2_t": ConvNextV2_T(),
               "convnextv2_b": ConvNextV2_B(),
               "convnextv2_l": ConvNextV2_L(),
-              "mobilenetv3": MobileNetV3()}
+              "mobilenetv3": MobileNetV3(),
+              "squeezenet": SqueezeNet()}
 
 assert args.model_weight != None
 model = model_dict.get(args.model)
 model.load_state_dict(torch.load(os.path.join("./model_weights", args.model_weight)))
 embedding_dim = model(torch.randn(1, 3, 224, 224)).shape[-1]
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Datasets                                                                                                             #
@@ -238,8 +246,6 @@ def calculate_cmc(query_list, matched_list, topk):
 # Inference                                                                                                            #
 #----------------------------------------------------------------------------------------------------------------------# 
 def inference(model, query_loader, gallery_loader, embedding_dim, topk):
-    assert topk >= 1
-
     res = faiss.StandardGpuResources()
     faiss_index = faiss.GpuIndexFlatIP(res, embedding_dim)
     model = model.to(device)
@@ -248,7 +254,6 @@ def inference(model, query_loader, gallery_loader, embedding_dim, topk):
     gallery_list = []
     query_list = []
     matched_list = []
-
     inference_time = []
     with torch.no_grad():
         for (gallery, labels) in gallery_loader:
@@ -286,7 +291,7 @@ def inference(model, query_loader, gallery_loader, embedding_dim, topk):
     return query_list, matched_list
 
 #----------------------------------------------------------------------------------------------------------------------#  
-# Show Inference                                                                                                                #
+# Show Inference                                                                                                       #
 #----------------------------------------------------------------------------------------------------------------------# 
 def show_inference(topk, query_list, matched_list, stop=0):
     _, ax = plt.subplots(1,1+topk, figsize=(6,3))
@@ -310,7 +315,7 @@ def show_inference(topk, query_list, matched_list, stop=0):
             if not os.path.isdir("./results"):
                 os.mkdir("./results")
             print("Saving infereced image...")
-            plt.savefig(f'./results/result_{args.query_index}.jpg')
+            plt.savefig(f'./results/{args.model}_result_{args.query_index}.jpg')
             print("Completed!\n")
             break
 
@@ -318,9 +323,6 @@ def show_inference(topk, query_list, matched_list, stop=0):
 # Main                                                                                                                 #
 #----------------------------------------------------------------------------------------------------------------------# 
 if __name__== "__main__":
-    tf = A.Compose([A.Resize(224,224),
-                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
-    
     if args.demo:
         gallery_path = "./data/data_reid/reid_test/gallery"
         query_path = "./data/data_reid/reid_test/query"
@@ -343,5 +345,5 @@ if __name__== "__main__":
     show_inference(topk=5, query_list=query_list, matched_list=matched_list, stop=args.query_index)
     
     calculate_map(query_list, matched_list, gallery_path)
-    calculate_cmc(query_list=query_list, matched_list=matched_list, topk=20)
+    calculate_cmc(query_list, matched_list, topk=20)
     print("Inference Finished!\n")
