@@ -26,8 +26,11 @@ from timeit import default_timer as timer
 #----------------------------------------------------------------------------------------------------------------------# 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 warnings.filterwarnings("ignore")
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark_enabled = True
 tf = A.Compose([A.Resize(224,224),
-                A.Normalize(mean=(0.485, 0.456, 0.407), std=(0.229, 0.224, 0.225))])
+                A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+                A.HorizontalFlip(p=0.5)])
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Argument Parser                                                                                                      #
@@ -35,7 +38,7 @@ tf = A.Compose([A.Resize(224,224),
 parser = argparse.ArgumentParser()
 parser.add_argument('--demo', type=bool, default=False) 
 parser.add_argument('--seed', type=int, default=1) 
-parser.add_argument('--epoch', type=int, default=10) 
+parser.add_argument('--epoch', type=int, default=50) 
 parser.add_argument('--train_batch', type=int, default=64) 
 parser.add_argument('--valid_batch', type=int, default=256) 
 parser.add_argument('--lr', type=float, default=0.001)  
@@ -53,8 +56,6 @@ torch.cuda.manual_seed(args.seed)
 torch.cuda.manual_seed_all(args.seed)
 np.random.seed(args.seed)
 random.seed(args.seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark_enabled = True
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Picture Statistics                                                                                                   #
@@ -199,7 +200,9 @@ model_dict = {"convnextv2_a": ConvNextV2_A(),
               "convnextv2_t": ConvNextV2_T(),
               "convnextv2_b": ConvNextV2_B(),
               "convnextv2_l": ConvNextV2_L(),
-              "mobilenetv3": MobileNetV3()}
+              "mobilenetv3": MobileNetV3(),
+              "squeezenet": SqueezeNet()}
+
 model = model_dict.get(args.model)
 assert model != None
 embedding_dim = model(torch.randn(1, 3, 224, 224)).shape[-1]
@@ -260,11 +263,11 @@ def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query
         if mAP >= best_mAP:
             print(f"Best mAP is achieved!!")
             print("Saving Best and Latest Model...")
-            torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}_best.pth"))
+            torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}2_best.pth"))
             changes = mAP - best_mAP
             best_mAP = mAP
 
-        torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}_latest.pth"))
+        torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}2_latest.pth"))
         print("All Model Checkpoints Saved!")
         print("----------------------------")
         print(f"Best mAP: {best_mAP:.4f}")
@@ -288,8 +291,8 @@ def validation(model, query_loader, gallery_loader, gallery_path, embedding_dim,
         for gallery, labels in gallery_loader:
             gallery = gallery.to(device)
 
-            outputs = model(gallery)
-            faiss.normalize_L2(outputs.cpu().numpy())
+            outputs = model(gallery).cpu().numpy()
+            faiss.normalize_L2(outputs)
             faiss_index.add(outputs)
             for label in labels:
                 gallery_list.append(label)
