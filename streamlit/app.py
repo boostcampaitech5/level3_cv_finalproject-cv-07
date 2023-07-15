@@ -23,7 +23,7 @@ import open_clip
 from ptflops import get_model_complexity_info
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
-from detection.detection_model import Yolo_Nas_L
+from detection_model import Yolo_Nas_L
 from tqdm import tqdm
 from torchvision.models import ResNet50_Weights, MobileNet_V3_Large_Weights
 from torch.utils.data import Dataset
@@ -78,41 +78,58 @@ def person_query_lst(_frame, _results, thr = 0.7):
             
     return person_idx_lst, person_img_lst
 
-@st.cache_data
-def naming_players(_setting_person_id, _setting_person_img):
-    team_list = []
-    player_dict = dict()
+
+def naming_players(_setting_person_id, _setting_person_img, team_list, show_image=True):
     id_max = len(_setting_person_id)
+    id_start = 0
 
     for i in range(0, len(_setting_person_id), 5):
         col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
         with col1:
-            st.image(np.array(torch.permute(_setting_person_img[i], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {_setting_person_id[i]}')
-            team_list.append({"id": _setting_person_id[i], "name": '', "team": "Team1"})
+            if(show_image):
+                st.image(np.array(torch.permute(_setting_person_img[i], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {id_start}')
+            team_list.append({"id": id_start, "name": '', "team": "Team1"})
+            id_start += 1
             if(i == id_max - 1):
                 continue
         with col2:
-            st.image(np.array(torch.permute(_setting_person_img[i + 1], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {_setting_person_id[i + 1]}')
-            team_list.append({"id": _setting_person_id[i + 1], "name": '', "team": "Team1"})
+            if(show_image):
+                st.image(np.array(torch.permute(_setting_person_img[i + 1], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {id_start}')
+            team_list.append({"id": id_start, "name": '', "team": "Team1"})
+            id_start += 1
             if(i + 1 == id_max - 1):
                 continue
         with col3:
-            st.image(np.array(torch.permute(_setting_person_img[i + 2], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {_setting_person_id[i + 2]}')
-            team_list.append({"id": _setting_person_id[i + 2], "name": '', "team": "Team1"})
+            if(show_image):
+                st.image(np.array(torch.permute(_setting_person_img[i + 2], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {id_start}')
+            team_list.append({"id": id_start, "name": '', "team": "Team1"})
+            id_start += 1
             if(i + 2 == id_max - 1):
                 continue
         with col4:
-            st.image(np.array(torch.permute(_setting_person_img[i + 3], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {_setting_person_id[i + 3]}')
-            team_list.append({"id": _setting_person_id[i + 3], "name": '', "team": "Team1"})
+            if(show_image):
+                st.image(np.array(torch.permute(_setting_person_img[i + 3], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {id_start}')
+            team_list.append({"id": id_start, "name": '', "team": "Team1"})
+            id_start += 1
             if(i + 3 == id_max - 1):
                 continue
         with col5:
-            st.image(np.array(torch.permute(_setting_person_img[i + 4], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {_setting_person_id[i + 4]}')
-            team_list.append({"id": _setting_person_id[i + 4], "name": '', "team": "Team1"})
+            if(show_image):
+                st.image(np.array(torch.permute(_setting_person_img[i + 4], (1, 2, 0)), dtype=np.float32), clamp=True, caption=f'ID = {id_start}')
+            team_list.append({"id": id_start, "name": '', "team": "Team1"})
+            id_start += 1
             if(i + 4 == id_max - 1):
                 continue
-                
+    
     return team_list
+
+def save_edits():
+    # st.session_state.team_list = naming_players(st.session_state.setting_persion_id, st.session_state.setting_person_img, st.session_state.team_list, show_image=False)
+    st.session_state.data_editor_copy = st.session_state.data_editor.copy()
+    for i in range(len(st.session_state.data_editor_copy['id'])):
+        st.session_state.team_list[i] = ({"id": st.session_state.data_editor_copy['id'][i], "name": st.session_state.data_editor_copy['name'][i], "team": st.session_state.data_editor_copy['team'][i]})
+
+    st.session_state.team_list_edit = st.session_state.team_list.copy()
 
 # @st.cache_resource(show_spinner=False)
 # def detect_video(_net, _tfile, _cap):
@@ -192,7 +209,7 @@ def naming_players(_setting_person_id, _setting_person_img):
 #         st.success('Analysis Success!')
 #         return predection1, video_out
 
-@st.cache_data(show_spinner=False)
+@st.cache_resource(show_spinner=False)
 def make_predicted_video(_detect_model, _re_id_model, _cap, _emb_dim=960):
     with st.chat_message("predict"):
         st.header("2. Predict Video")
@@ -332,6 +349,7 @@ def make_predicted_video(_detect_model, _re_id_model, _cap, _emb_dim=960):
 def main():
     st.set_page_config(layout="wide")
     st.cache_data.clear()
+    # st.cache_resource.clear()
     main1_col, main2_col = st.columns([0.6, 0.4])
     
     isPlayerNum = True
@@ -362,20 +380,26 @@ def main():
                     ret, frame = cap.read()
                     img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     results = net.predict(img)
-                                
-                    setting_person_id, setting_person_img = person_query_lst(frame, results)
-                    team_list = naming_players(setting_person_id, setting_person_img)
+
+                    st.session_state.setting_persion_id = []
+                    st.session_state.setting_person_img = []
+                    st.session_state.team_list = []
+                    
+                    st.session_state.setting_persion_id, st.session_state.setting_person_img = person_query_lst(frame, results)
+                    st.session_state.team_list = naming_players(st.session_state.setting_persion_id, st.session_state.setting_person_img, st.session_state.team_list)
                     
                     team_df = pd.DataFrame(
-                        team_list
+                        st.session_state.team_list
                     )
-                    data_editor = st.data_editor(team_df, column_config={
+                    st.session_state.data_editor = st.data_editor(team_df, column_config={
                                                     "id": st.column_config.NumberColumn("Player Id"),
                                                     "name": st.column_config.TextColumn("Player Name"),
                                                     "team": st.column_config.SelectboxColumn("Player Team", options=["Team1", "Team2"])
-                                                },
-                                                 use_container_width=True, hide_index=True)
-    
+                                                    },
+                                                     use_container_width=True, hide_index=True, on_change=save_edits)
+
+                    save_edits()
+                    
                     isStart = st.button(label='Start', type='primary', disabled=isUpload, use_container_width=True)
                     with main2_col:
                         if(isStart):
@@ -387,7 +411,32 @@ def main():
                             # st.write(tfile.name + '/' + input_video.name)
                             
                             prediction = make_predicted_video(net, reid_net, cap)
-                            st.write(prediction)
+                            
+                            for team in st.session_state.team_list_edit:
+                                team['shoot'] = prediction.player_dict.get(team['id']).stm
+                                team['goal'] = prediction.player_dict.get(team['id']).smm
+                                if(team['shoot'] == 0):
+                                    team['ratio'] = 0
+                                else:
+                                    team['ratio'] = int(team['goal'] / team['shoot'] * 100)
+
+                            st.session_state.score_df = pd.DataFrame(
+                                st.session_state.team_list_edit
+                            )
+                            st.session_state.data_editor_score = st.dataframe(st.session_state.score_df, column_config={
+                                                            "id": st.column_config.NumberColumn("Id"),
+                                                            "name": st.column_config.TextColumn("Name"),
+                                                            "team": st.column_config.SelectboxColumn("Team", options=["Team1", "Team2"]),
+                                                            "shoot": st.column_config.NumberColumn("Shoot"),
+                                                            "goal": st.column_config.NumberColumn("Goal"),
+                                                            "ratio": st.column_config.NumberColumn("FG(%)"),
+                                                            },
+                                                             use_container_width=True, hide_index=True)
+
+
+                            if(st.button(label='Reset', type='primary', use_container_width=True)):
+                                st.cache_resource.clear()
+
             
 
 if __name__ == '__main__':
