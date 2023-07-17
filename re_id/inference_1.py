@@ -127,11 +127,11 @@ class TRAIN(Dataset):
 
     def __getitem__(self, item):
         anchor_name = self.people_list[item]
-        anchor_id = int(anchor_name[:3])
+        anchor_id = int(anchor_name[:5])
         anchor = cv2.imread(os.path.join(self.path, anchor_name))
         anchor = cv2.cvtColor(anchor, cv2.COLOR_BGR2RGB)
         
-        positive_list = [filename for filename in self.people_list if filename.startswith(anchor_name[:3])]
+        positive_list = [filename for filename in self.people_list if filename.startswith(anchor_name[:5])]
         positive_name = random.choice(positive_list)
         while positive_name == anchor_name:
             positive_name = random.choice(positive_list)
@@ -139,10 +139,10 @@ class TRAIN(Dataset):
         positive = cv2.cvtColor(positive, cv2.COLOR_BGR2RGB)
 
         negative_name = random.choice(self.people_list) 
-        negative_id = int(negative_name[:3])
+        negative_id = int(negative_name[:5])
         while negative_id == anchor_id:
             negative_name = random.choice(self.people_list) 
-            negative_id = int(negative_name[:3])
+            negative_id = int(negative_name[:5])
         negative = cv2.imread(os.path.join(self.path, negative_name))
         negative = cv2.cvtColor(negative, cv2.COLOR_BGR2RGB)
 
@@ -191,7 +191,7 @@ def calculate_map(query_list, matched_list, gallery_path):
     
     for query_name, matched_name in zip(query_list, matched_list):
         for x in os.listdir(gallery_path):
-            if query_name[:3] == x[:3]:
+            if query_name[:5] == x[:5]:
                 total_query_gt += 1
 
         tmp_total_query_gt = total_query_gt
@@ -199,7 +199,7 @@ def calculate_map(query_list, matched_list, gallery_path):
             count += 1
             if tmp_total_query_gt == 0:
                 break
-            elif query_name[:3] == i[:3]:
+            elif query_name[:5] == i[:5]:
                 precision += 1
                 tmp_total_query_gt -= 1
             else:
@@ -223,7 +223,7 @@ def calculate_cmc(query_list, matched_list, topk):
     for x in range(1, topk+1):
         for (query_name, matched_name) in zip(query_list, matched_list):
             for gallery in matched_name[:x]:
-                if query_name[:3] == gallery[:3]:
+                if query_name[:5] == gallery[:5]:
                     count += 1
                     break
             total += 1
@@ -299,17 +299,17 @@ def show_inference(topk, query_list, matched_list, stop=0):
         query = cv2.imread(os.path.join(query_path, query_name))
         query = cv2.cvtColor(query, cv2.COLOR_BGR2RGB)
         ax[0].imshow(query)
-        ax[0].set_title(f"Q: {query_name[:3]}")
+        ax[0].set_title(f"Q: {query_name[:5]}")
         ax[0].axis('off')
 
         for i in range(topk):
             matched = cv2.cvtColor(cv2.imread(os.path.join(gallery_path, matched_name[i])), cv2.COLOR_BGR2RGB)
             ax[i+1].imshow(matched)
             ax[i+1].axis('off')
-            if int(query_name[:3]) == int(matched_name[i][:3]):
-                ax[i+1].set_title(f"M: {matched_name[i][:3]}", color='green')
+            if int(query_name[:5]) == int(matched_name[i][:5]):
+                ax[i+1].set_title(f"M: {matched_name[i][:5]}", color='green')
             else:
-                ax[i+1].set_title(f"M: {matched_name[i][:3]}", color='red')
+                ax[i+1].set_title(f"M: {matched_name[i][:5]}", color='red')
         
         if step == stop:
             if not os.path.isdir("./results"):
