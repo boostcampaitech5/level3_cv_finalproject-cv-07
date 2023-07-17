@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import faiss.contrib.torch_utils
 
 from model import *
+from loss import quadruplet_loss
 from download_data import config
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
@@ -30,7 +31,8 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark_enabled = True
 tf = A.Compose([A.Resize(224,224),
                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-                A.HorizontalFlip(p=0.5)])
+                A.HorizontalFlip(p=0.5),
+                A.CoarseDropout(max_holes=1, max_height=120, max_width=120, min_height=20, min_width=20, fill_value=0, p=1.0)])
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Argument Parser                                                                                                      #
@@ -38,7 +40,7 @@ tf = A.Compose([A.Resize(224,224),
 parser = argparse.ArgumentParser()
 parser.add_argument('--demo', type=bool, default=False) 
 parser.add_argument('--seed', type=int, default=1) 
-parser.add_argument('--epoch', type=int, default=50) 
+parser.add_argument('--epoch', type=int, default=100) 
 parser.add_argument('--train_batch', type=int, default=64) 
 parser.add_argument('--valid_batch', type=int, default=256) 
 parser.add_argument('--lr', type=float, default=0.001)  
@@ -46,6 +48,7 @@ parser.add_argument('--fp16', type=bool, default=False)
 parser.add_argument('--model', type=str, default='mobilenetv3') 
 parser.add_argument('--scheduler', type=bool, default=False) 
 parser.add_argument('--num_workers', type=int, default=8) 
+parser.add_argument('--quadruplet', type=bool, default=False) 
 args = parser.parse_args()
 
 #----------------------------------------------------------------------------------------------------------------------#  
@@ -168,7 +171,15 @@ class TRAIN(Dataset):
         negative = cv2.imread(os.path.join(self.path, negative_name))
         negative = cv2.cvtColor(negative, cv2.COLOR_BGR2RGB)
 
-        set_images = [anchor, positive, negative]
+        negative_name2 = random.choice(self.people_list) 
+        negative_id2 = int(negative_name2[:3])
+        while negative_id2 == anchor_id or negative_id2 == negative_id:
+            negative_name2 = random.choice(self.people_list) 
+            negative_id2 = int(negative_name2[:3])
+        negative2 = cv2.imread(os.path.join(self.path, negative_name2))
+        negative2 = cv2.cvtColor(negative2, cv2.COLOR_BGR2RGB)
+
+        set_images = [anchor, positive, negative, negative2]
 
         if self.transfrom:
             for idx, i in enumerate(set_images):
@@ -187,8 +198,9 @@ class TRAIN(Dataset):
                 set_images[idx] /= 255.
                 set_images[idx] = torch.from_numpy(set_images[idx])
                 set_images[idx] = torch.permute(set_images[idx], (2,0,1))
-                
-        return set_images[0], set_images[1], set_images[2], anchor_id
+
+               
+        return set_images[0], set_images[1], set_images[2], set_images[3], anchor_id
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Model Configurations                                                                                                 #
@@ -208,7 +220,7 @@ assert model != None
 embedding_dim = model(torch.randn(1, 3, 224, 224)).shape[-1]
 epochs = args.epoch
 learning_rate = args.lr
-criterion = nn.TripletMarginLoss(margin=1.0)
+criterion = quadruplet_loss if args.quadruplet else nn.TripletMarginLoss(margin=1.0)
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 weight_path = "./model_weights"
 lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lambda epoch: 0.95**epoch, verbose=False)
@@ -219,7 +231,7 @@ if os.path.isdir(weight_path) == False:
 #----------------------------------------------------------------------------------------------------------------------#  
 # Train & Validation Methods                                                                                           #
 #----------------------------------------------------------------------------------------------------------------------# 
-def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query_loader, gallery_loader, gallery_path, embedding_dim, topk, scheduler, fp16):
+def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query_loader, gallery_loader, gallery_path, embedding_dim, topk, scheduler, fp16, quadruplet):
     print(f"Start Training...")
     if fp16:
         print(f"Training with Mixed Precision...")
@@ -231,8 +243,8 @@ def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query
 
     for epoch in range(epochs):
         model.train()
-        for step, (anchor, positive, negative, _) in enumerate(train_loader):
-            anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
+        for step, (anchor, positive, negative, negative2, _) in enumerate(train_loader):
+            anchor, positive, negative, negative2 = anchor.to(device), positive.to(device), negative.to(device), negative2.to(device)
             
             optimizer.zero_grad(set_to_none=True)
             if fp16:
@@ -240,7 +252,11 @@ def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query
                     anchor_features = model(anchor) 
                     positive_features = model(positive)
                     negative_features = model(negative)
-                    loss = criterion(anchor_features, positive_features, negative_features)
+                    if quadruplet:
+                        negative2_features = model(negative2)
+                        loss = criterion(anchor_features, positive_features, negative_features, negative2_features)
+                    else:
+                        loss = criterion(anchor_features, positive_features, negative_features)
                 
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
@@ -249,8 +265,12 @@ def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query
                 anchor_features = model(anchor) 
                 positive_features = model(positive)
                 negative_features = model(negative) 
-
-                loss = criterion(anchor_features, positive_features, negative_features)
+                if quadruplet:
+                    negative2_features = model(negative2)
+                    loss = criterion(anchor_features, positive_features, negative_features, negative2_features)
+                else:
+                    loss = criterion(anchor_features, positive_features, negative_features)
+                
                 loss.backward()
                 optimizer.step()
 
@@ -263,11 +283,11 @@ def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query
         if mAP >= best_mAP:
             print(f"Best mAP is achieved!!")
             print("Saving Best and Latest Model...")
-            torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}2_best.pth"))
+            torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}6_best.pth"))
             changes = mAP - best_mAP
             best_mAP = mAP
 
-        torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}2_latest.pth"))
+        torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}6_latest.pth"))
         print("All Model Checkpoints Saved!")
         print("----------------------------")
         print(f"Best mAP: {best_mAP:.4f}")
@@ -357,7 +377,8 @@ if __name__ == "__main__":
     print(f"8. Learning Rate: {args.lr}")
     print(f"9. FP16: {args.fp16}")
     print(f"10. Scheduler: {args.scheduler}")
-    print(f"11. Num Workers: {args.num_workers}\n")
+    print(f"11. Num Workers: {args.num_workers}")
+    print(f"12. Quadruplet Loss: {args.quadruplet}\n")
 
     if args.demo:
         path = "./data/data_reid/reid_training" 
@@ -397,4 +418,5 @@ if __name__ == "__main__":
           embedding_dim=embedding_dim,
           topk=total_gallery_images,
           scheduler=args.scheduler,
-          fp16=args.fp16)
+          fp16=args.fp16,
+          quadruplet=args.quadruplet)
