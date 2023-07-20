@@ -212,7 +212,8 @@ model_dict = {"convnextv2_a": ConvNextV2_A(),
               "convnextv2_b": ConvNextV2_B(),
               "convnextv2_l": ConvNextV2_L(),
               "mobilenetv3": MobileNetV3(),
-              "squeezenet": SqueezeNet()}
+              "squeezenet": SqueezeNet(),
+              "squeezenet_cbam": SqueezeNetMod()}
 
 model = model_dict.get(args.model)
 assert model != None
