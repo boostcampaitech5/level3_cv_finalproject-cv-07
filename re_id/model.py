@@ -4,6 +4,8 @@ import open_clip
 import numpy as np
 import torch.nn as nn
 import torchvision.models as models
+
+from cbam import SAM, CAM, CBAM
 from torchvision.models.squeezenet import SqueezeNet1_1_Weights
 
 class SqueezeNet(nn.Module):
@@ -14,7 +16,18 @@ class SqueezeNet(nn.Module):
     def forward(self, x):
         embedding_feature = self.squeezenet(x)
         return embedding_feature
+    
+class SqueezeNetMod(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.squeezenet = models.squeezenet1_1(weights=SqueezeNet1_1_Weights.IMAGENET1K_V1)
+        self.squeezenet.features[5] = nn.Sequential(CBAM(128, r=8), nn.MaxPool2d(kernel_size=3, stride=2, padding=0, dilation=1, ceil_mode=True))
+        self.squeezenet.features[8] = nn.Sequential(CBAM(256, r=8), nn.MaxPool2d(kernel_size=3, stride=2, padding=0, dilation=1, ceil_mode=True))
+        self.squeezenet.features[12] = nn.Sequential(self.squeezenet.features[12], CBAM(512, r=8))
         
+    def forward(self, x):
+        return self.squeezenet(x)
+      
 class MobileNetV3(nn.Module):
     def __init__(self):
         super().__init__()
