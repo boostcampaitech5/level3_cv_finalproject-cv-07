@@ -31,8 +31,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark_enabled = True
 tf = A.Compose([A.Resize(224,224),
                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-                A.HorizontalFlip(p=0.5),
-                A.CoarseDropout(max_holes=1, max_height=120, max_width=120, min_height=20, min_width=20, fill_value=0, p=1.0)])
+                A.HorizontalFlip(p=0.5)])
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Argument Parser                                                                                                      #
@@ -152,11 +151,11 @@ class TRAIN(Dataset):
 
     def __getitem__(self, item):
         anchor_name = self.people_list[item]
-        anchor_id = int(anchor_name[:3])
+        anchor_id = int(anchor_name[:5])
         anchor = cv2.imread(os.path.join(self.path, anchor_name))
         anchor = cv2.cvtColor(anchor, cv2.COLOR_BGR2RGB)
         
-        positive_list = [filename for filename in self.people_list if filename.startswith(anchor_name[:3])]
+        positive_list = [filename for filename in self.people_list if filename.startswith(anchor_name[:5])]
         positive_name = random.choice(positive_list)
         while positive_name == anchor_name:
             positive_name = random.choice(positive_list)
@@ -164,18 +163,18 @@ class TRAIN(Dataset):
         positive = cv2.cvtColor(positive, cv2.COLOR_BGR2RGB)
 
         negative_name = random.choice(self.people_list) 
-        negative_id = int(negative_name[:3])
+        negative_id = int(negative_name[:5])
         while negative_id == anchor_id:
             negative_name = random.choice(self.people_list) 
-            negative_id = int(negative_name[:3])
+            negative_id = int(negative_name[:5])
         negative = cv2.imread(os.path.join(self.path, negative_name))
         negative = cv2.cvtColor(negative, cv2.COLOR_BGR2RGB)
 
         negative_name2 = random.choice(self.people_list) 
-        negative_id2 = int(negative_name2[:3])
+        negative_id2 = int(negative_name2[:5])
         while negative_id2 == anchor_id or negative_id2 == negative_id:
             negative_name2 = random.choice(self.people_list) 
-            negative_id2 = int(negative_name2[:3])
+            negative_id2 = int(negative_name2[:5])
         negative2 = cv2.imread(os.path.join(self.path, negative_name2))
         negative2 = cv2.cvtColor(negative2, cv2.COLOR_BGR2RGB)
 
@@ -337,7 +336,7 @@ def validation(model, query_loader, gallery_loader, gallery_path, embedding_dim,
         mAP = []
         for query_name, matched_name in zip(query_list, matched_list):
             for x in os.listdir(gallery_path):
-                if query_name[:3] == x[:3]:
+                if query_name[:5] == x[:5]:
                     total_query_gt += 1
 
             tmp_total_query_gt = total_query_gt
@@ -345,7 +344,7 @@ def validation(model, query_loader, gallery_loader, gallery_path, embedding_dim,
                 count += 1
                 if tmp_total_query_gt == 0:
                     break
-                elif query_name[:3] == i[:3]:
+                elif query_name[:5] == i[:5]:
                     precision += 1
                     tmp_total_query_gt -= 1
                 else:
