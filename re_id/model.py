@@ -27,6 +27,15 @@ class SqueezeNetMod(nn.Module):
         
     def forward(self, x):
         return self.squeezenet(x)
+
+class MobileVitV2(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mobilevitv2 = timm.create_model("mobilevitv2_100.cvnets_in1k")
+    
+    def forward(self, x):
+        embedding_feature = self.mobilevitv2(x)
+        return embedding_feature
       
 class MobileNetV3(nn.Module):
     def __init__(self):
