@@ -153,7 +153,6 @@ class ReId:
      
     def person_query_lst(self, frame, results,thr):
         img = frame
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         tf = A.Compose([A.Resize(224,224),
                         A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
     
