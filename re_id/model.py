@@ -4,8 +4,7 @@ import open_clip
 import numpy as np
 import torch.nn as nn
 import torchvision.models as models
-
-from cbam import SAM, CAM, CBAM
+from .cbam import SAM, CAM, CBAM
 from torchvision.models.squeezenet import SqueezeNet1_1_Weights
 
 class SqueezeNet(nn.Module):
