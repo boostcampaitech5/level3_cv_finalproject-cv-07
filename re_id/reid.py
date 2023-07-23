@@ -25,13 +25,15 @@ class Player:
 
 class ReId:
     def __init__(self, model, checkpoint, person_thr=0.6, cosine_thr=0.5) -> None:
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
         self.model = model
         self.model.load_state_dict(torch.load(checkpoint), strict=True)         
-        self.model = self.model.to("cuda") if torch.cuda.is_available() else self.model.to("cpu")
+        self.model = self.model.to(self.device)
         
         self.tf = get_transform()
         
-        random_tensor = torch.randn(1, 3, 224, 224).to("cuda")
+        random_tensor = torch.randn(1, 3, 224, 224).to(self.device)
         embedding_dim = self.model(random_tensor).shape[-1]
         
         self.player_dict = dict()
@@ -45,8 +47,7 @@ class ReId:
     def shot_re_id_inference(self, frame, results): 
         person_img_lst = self.shot_person_query_lst(frame, results)
         detected_query = person_img_lst
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        detected_query_stack = torch.stack(detected_query, dim=0).to(device)
+        detected_query_stack = torch.stack(detected_query, dim=0).to(self.device)
     
         with torch.no_grad():
             detected_query_vector = self.model(detected_query_stack).detach().cpu().numpy()                       
@@ -58,9 +59,8 @@ class ReId:
     def re_id_process(self, frame, results, frame_num, first_frame):
         person_idx_lst, person_img_lst = self.person_query_lst(frame, results, thr=self.person_thr)
         detected_query = person_img_lst
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-        detected_query_stack = torch.stack(detected_query, dim=0).to(device)
+        detected_query_stack = torch.stack(detected_query, dim=0).to(self.device)
 
         with torch.no_grad():
             detected_query_vector = self.model(detected_query_stack).detach().cpu().numpy()                       
