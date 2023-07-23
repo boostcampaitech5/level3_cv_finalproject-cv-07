@@ -1,12 +1,8 @@
 import torch
-import cv2
 import numpy as np
 import faiss
-import albumentations as A
 from torch.nn.functional import cosine_similarity
 from torchvision.transforms import functional as F
-from albumentations.pytorch import ToTensorV2
-from albumentations.core.transforms_interface import ImageOnlyTransform
 from collections import Counter
 from sklearn.cluster import KMeans
 from .transform import get_transform
