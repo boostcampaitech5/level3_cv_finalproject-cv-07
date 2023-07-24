@@ -1,7 +1,7 @@
-from albumentations.core.transforms_interface import ImageOnlyTransform
 import cv2
 import numpy as np
 import albumentations as A
+from albumentations.core.transforms_interface import ImageOnlyTransform
 from albumentations.pytorch import ToTensorV2
 
 class RectResize(ImageOnlyTransform):

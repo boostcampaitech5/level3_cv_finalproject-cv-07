@@ -1,6 +1,11 @@
+import os
+import sys
 import torch
 import numpy as np
 import faiss
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
 from torch.nn.functional import cosine_similarity
 from torchvision.transforms import functional as F
 from collections import Counter
