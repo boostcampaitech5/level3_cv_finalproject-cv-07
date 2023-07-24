@@ -1,15 +1,15 @@
 import os
-from dataclasses import dataclass
 import requests 
-import hashlib
 import shutil
+
+from dataclasses import dataclass
 from zipfile import ZipFile
 
 @dataclass
 class Configuration:
     link: str = "https://github.com/DeepSportRadar/player-reidentification-challenge/archive/refs/heads/master.zip"
     md5: str = '05715857791e2e88b2f11e4037fbec7d'
-    path: str = "./data"
+    path: str = "../data"
     
 def download_zip(url, save_path, chunk_size=128):
     r = requests.get(url, stream=True)
