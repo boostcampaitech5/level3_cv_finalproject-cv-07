@@ -29,14 +29,17 @@ from torchvision.models import ResNet50_Weights, MobileNet_V3_Large_Weights
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from PIL import Image
-from re_id.reid import ReId
-from re_id.model import TimmModel
-from utils.visualize3 import *
+from reid import ReId
+from reid_model import TimmModel
+from visualize3 import *
 
+torch.backends.cudnn.enabled=True
 
+# MODEL_PATH
 YOLO_MODEL_PATH = '/opt/ml/input/code/streamlit/'
 REID_MODEL_PATH = '/opt/ml/input/code/streamlit/'
 
+# LOAD MODEL
 @st.cache_resource
 def load_model():
     detect_checkpoint = YOLO_MODEL_PATH + 'ckpt_best.pth'
@@ -49,6 +52,7 @@ def load_model():
     
     return net, reid_net
 
+# SAVE PLAYER LIST
 @st.cache_data
 def person_query_lst(_frame, _results, thr = 0.7):
     img = _frame
@@ -78,7 +82,7 @@ def person_query_lst(_frame, _results, thr = 0.7):
             
     return person_idx_lst, person_img_lst
 
-
+# SHOW THE PLAYER'S INFO
 def naming_players(_setting_person_id, _setting_person_img, team_list, show_image=True):
     id_max = len(_setting_person_id)
     id_start = 0
@@ -123,6 +127,7 @@ def naming_players(_setting_person_id, _setting_person_img, team_list, show_imag
     
     return team_list
 
+# SAVE THE EDITED PLAYER'S INFO
 def save_edits():
     # st.session_state.team_list = naming_players(st.session_state.setting_persion_id, st.session_state.setting_person_img, st.session_state.team_list, show_image=False)
     st.session_state.data_editor_copy = st.session_state.data_editor.copy()
@@ -131,84 +136,7 @@ def save_edits():
 
     st.session_state.team_list_edit = st.session_state.team_list.copy()
 
-# @st.cache_resource(show_spinner=False)
-# def detect_video(_net, _tfile, _cap):
-#     with st.chat_message("predict"):
-#         st.header("2. Predict Video")
-#         with st.spinner('Predicting... This may take few minutes...'):
-#             prediction1 = _net.predict(_tfile.name, fuse_model=False)
-        
-
-#     with st.chat_message("Analysis"):
-#         st.header("3. Analysis")
-        
-#         fps = _cap.get(cv2.CAP_PROP_FPS)
-#         w = int(_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-#         h = int(_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-#         video_out = cv2.VideoWriter(MODEL_PATH + VIDEO_PATH.split('/')[-1].split('.')[0] + '_result_average.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-        
-#         total_frames_num = _cap.get(cv2.CAP_PROP_FRAME_COUNT)
-#         frame_num = _cap.get(cv2.CAP_PROP_POS_FRAMES)
-        
-#         shot_try_on = False
-#         shot_try_done = False
-#         shot_made_try = False
-#         shot_made_done = False
-#         cnt=0
-#         id_max = 4
-#         delay = 0
-#         player_id = 0
-#         shoot_board = [0 for i in range(id_max)]
-#         score_board = [0 for i in range(id_max)]
-#         class_names = prediction1[0].class_names
-         
-#         pre_rim_data = []
-#         percent = 0.0
-    
-#         # Text config
-#         text_rgb = (255, 255, 255)
-#         text_height = [40 * (i + 1) for i in range(id_max * 3)]
-#         text_thickness = 2
-#         text_lineType = cv2.LINE_AA
-#         text_font = cv2.FONT_ITALIC
-        
-#         detect_bar = st.progress(percent, text=f'{percent:.1f}% 완료')
-        
-#         for frame_index, frame_prediction in enumerate(prediction1):
-#             labels = frame_prediction.prediction.labels.tolist()
-#             # confidence = frame_prediction.prediction.confidence
-#             bboxes = frame_prediction.prediction.bboxes_xyxy.tolist()
-#             frame = frame_prediction.draw(box_thickness=1, show_confidence=False)
-            
-#             if(delay >= 30 and float(class_names.index('shoot')) in labels):
-#                 player_index = [i for i, ele in enumerate(labels) if ele == class_names.index('person')]
-#                 player_iou = [cal_iou(bboxes[labels.index(float(class_names.index('shoot')))], bboxes[idx]) for idx in player_index]
-#                 player_id = player_iou.index(max(player_iou))
-#                 st.write(f"{player_id} Shoot!")
-                
-#                 shoot_board[player_id] = shoot_board[player_id] + 1
-#                 delay = 0
-#             elif(delay >= 30 and float(class_names.index('made')) in labels):
-#                 st.write(f"{player_id} Goal!")
-#                 score_board[player_id] = score_board[player_id] + 1
-#                 delay = 0
-        
-#             for id in range(id_max):
-#                 index = id * 3
-#                 frame = cv2.putText(frame, f'Player : {id}', (frame.shape[1] - 300, text_height[index]), text_font, 1, text_rgb, thickness=text_thickness, lineType=text_lineType)
-#                 frame = cv2.putText(frame, f'Score : {score_board[id]}', (frame.shape[1] - 300, text_height[index+1]), text_font, 1, text_rgb, thickness=text_thickness, lineType=text_lineType)
-#                 frame = cv2.putText(frame, f'Shoot_try : {shoot_board[id]}', (frame.shape[1] - 300, text_height[index+2]), text_font, 1, text_rgb, thickness=text_thickness, lineType=text_lineType)
-        
-#             delay = delay + 1
-#             percent = int(frame_index / int(len(prediction1)) * 100)
-#             detect_bar.progress(percent, text=f'{percent}% 완료')
-#             video_out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-        
-#         video_out.release()
-#         detect_bar.progress(100, text=f'{percent}% 완료')
-#         st.success('Analysis Success!')
-#         return predection1, video_out
-
+# PREDICT VIDEO
 @st.cache_resource(show_spinner=False)
 def make_predicted_video(_detect_model, _re_id_model, _cap, _emb_dim=960):
     with st.chat_message("predict"):
@@ -352,13 +280,11 @@ def main():
     # st.cache_resource.clear()
     main1_col, main2_col = st.columns([0.6, 0.4])
     
-    isPlayerNum = True
     isUpload = True
     
     with main1_col:
         file_upload_container = st.container()
         setting_container = st.container()
-        record_container = st.container()
 
         with file_upload_container:
             st.title('Basketball Scoreboard 자동 분석')
@@ -408,7 +334,6 @@ def main():
                                 
                                 if(net):
                                     st.success('Model Load!')
-                            # st.write(tfile.name + '/' + input_video.name)
                             
                             prediction = make_predicted_video(net, reid_net, cap)
                             
@@ -436,6 +361,7 @@ def main():
 
                             if(st.button(label='Reset', type='primary', use_container_width=True)):
                                 st.cache_resource.clear()
+                                st.cache_data.clear()
 
             
 
