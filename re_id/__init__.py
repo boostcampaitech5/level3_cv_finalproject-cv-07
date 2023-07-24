@@ -1,3 +1,3 @@
-from .loss import *
-from .reid import *
-from .model import *
+from .module.loss import *
+from .module.reid import *
+from .models.model import *

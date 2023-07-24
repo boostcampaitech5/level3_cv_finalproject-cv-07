@@ -15,9 +15,9 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import faiss.contrib.torch_utils
 
-from model import *
-from loss import quadruplet_loss
-from download_data import config
+from ..models.model import *
+from ..module.loss import quadruplet_loss
+from ..data.download_data import config
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from timeit import default_timer as timer

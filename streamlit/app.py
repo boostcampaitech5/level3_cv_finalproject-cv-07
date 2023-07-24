@@ -23,15 +23,14 @@ import open_clip
 from ptflops import get_model_complexity_info
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
-from detection_model import Yolo_Nas_L
+from ..detection.models.detection_model import Yolo_Nas_L
 from tqdm import tqdm
 from torchvision.models import ResNet50_Weights, MobileNet_V3_Large_Weights
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from PIL import Image
-from reid import ReId
-from reid_model import TimmModel
-from visualize3 import *
+from re_id import ReId, TimmModel
+from utils import *
 
 torch.backends.cudnn.enabled=True
 

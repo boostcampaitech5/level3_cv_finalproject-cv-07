@@ -9,7 +9,7 @@ import faiss.contrib.torch_utils
 import matplotlib.pyplot as plt
 import warnings
 
-from model import *
+from ..models.model import *
 from timeit import default_timer as timer
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
