@@ -3,7 +3,6 @@ import os
 import cv2
 import torch
 import faiss
-import random
 import argparse
 import albumentations as A
 import faiss.contrib.torch_utils
