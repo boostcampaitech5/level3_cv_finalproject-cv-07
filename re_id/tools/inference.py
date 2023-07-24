@@ -1,3 +1,4 @@
+import sys
 import os
 import cv2
 import torch
@@ -9,7 +10,9 @@ import faiss.contrib.torch_utils
 import matplotlib.pyplot as plt
 import warnings
 
-from ..models.model import *
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+from models.model import *
 from timeit import default_timer as timer
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
@@ -53,7 +56,7 @@ model_dict = {"convnextv2_a": ConvNextV2_A(),
 
 assert args.model_weight != None
 model = model_dict.get(args.model)
-model.load_state_dict(torch.load(os.path.join("./model_weights", args.model_weight)))
+model.load_state_dict(torch.load(os.path.join("../model_weights", args.model_weight)))
 embedding_dim = model(torch.randn(1, 3, 224, 224)).shape[-1]
 
 #----------------------------------------------------------------------------------------------------------------------#  
@@ -116,59 +119,6 @@ class QUERY(Dataset):
             query_image = torch.permute(query_image, (2,0,1))
 
         return query_image, query_label
-
-class TRAIN(Dataset):
-    def __init__(self, path, transform):
-        super().__init__()
-        self.path = path
-        self.transfrom = transform
-        self.people_list = sorted(os.listdir(path))
-        
-    def __len__(self):
-        return len(self.people_list)
-
-    def __getitem__(self, item):
-        anchor_name = self.people_list[item]
-        anchor_id = int(anchor_name[:5])
-        anchor = cv2.imread(os.path.join(self.path, anchor_name))
-        anchor = cv2.cvtColor(anchor, cv2.COLOR_BGR2RGB)
-        
-        positive_list = [filename for filename in self.people_list if filename.startswith(anchor_name[:5])]
-        positive_name = random.choice(positive_list)
-        while positive_name == anchor_name:
-            positive_name = random.choice(positive_list)
-        positive = cv2.imread(os.path.join(self.path, positive_name))
-        positive = cv2.cvtColor(positive, cv2.COLOR_BGR2RGB)
-
-        negative_name = random.choice(self.people_list) 
-        negative_id = int(negative_name[:5])
-        while negative_id == anchor_id:
-            negative_name = random.choice(self.people_list) 
-            negative_id = int(negative_name[:5])
-        negative = cv2.imread(os.path.join(self.path, negative_name))
-        negative = cv2.cvtColor(negative, cv2.COLOR_BGR2RGB)
-
-        set_images = [anchor, positive, negative]
-
-        if self.transfrom:
-            for idx, i in enumerate(set_images):
-                transformed = self.transfrom(image=i)
-                set_images[idx] = transformed['image']
-                set_images[idx] = set_images[idx].astype(np.float32)
-                set_images[idx] = torch.from_numpy(set_images[idx])
-                set_images[idx] = torch.permute(set_images[idx], (2,0,1))
-                
-        else:
-            tf = A.Compose([A.Resize(224,224)])
-            for idx, i in enumerate(set_images):
-                transformed = tf(image=i)
-                set_images[idx] = transformed['image']
-                set_images[idx] = set_images[idx].astype(np.float32)
-                set_images[idx] /= 255.
-                set_images[idx] = torch.from_numpy(set_images[idx])
-                set_images[idx] = torch.permute(set_images[idx], (2,0,1))
-                
-        return set_images[0], set_images[1], set_images[2], anchor_id
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Helper Methods                                                                                                       #
@@ -242,7 +192,7 @@ def calculate_cmc(query_list, matched_list, topk):
     plt.xticks(range(1,21))
     plt.legend()
     plt.show()
-    plt.savefig(f'./results/cmc_result_{args.model}')
+    plt.savefig(f'../results/cmc_result_{args.model}')
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Inference                                                                                                            #
@@ -314,10 +264,10 @@ def show_inference(topk, query_list, matched_list, stop=0):
                 ax[i+1].set_title(f"M: {matched_name[i][:5]}", color='red')
         
         if step == stop:
-            if not os.path.isdir("./results"):
-                os.mkdir("./results")
+            if not os.path.isdir("../results"):
+                os.mkdir("../results")
             print("Saving infereced image...")
-            plt.savefig(f'./results/{args.model}_result_{args.query_index}.jpg')
+            plt.savefig(f'../results/{args.model}_result_{args.query_index}.jpg')
             print("Completed!\n")
             break
 
@@ -326,11 +276,11 @@ def show_inference(topk, query_list, matched_list, stop=0):
 #----------------------------------------------------------------------------------------------------------------------# 
 if __name__== "__main__":
     if args.demo:
-        gallery_path = "./data/data_reid/reid_test/gallery"
-        query_path = "./data/data_reid/reid_test/query"
+        gallery_path = "../data/data_reid/reid_test/gallery"
+        query_path = "../data/data_reid/reid_test/query"
     else:   
-        gallery_path = "./data/custom_dataset/gallery"
-        query_path = "./data/custom_dataset/query"
+        gallery_path = "../data/custom_dataset/gallery"
+        query_path = "../data/custom_dataset/query"
 
     query_dataset = QUERY(query_path, tf)
     gallery_dataset = GALLERY(gallery_path, tf)

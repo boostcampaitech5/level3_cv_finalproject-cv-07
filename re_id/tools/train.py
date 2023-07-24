@@ -1,6 +1,6 @@
 import os
 import cv2
-import timm
+import sys
 import torch
 import faiss
 import random
@@ -11,16 +11,15 @@ import tqdm.auto as tqdm
 import albumentations as A
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
 import faiss.contrib.torch_utils
 
-from ..models.model import *
-from ..module.loss import quadruplet_loss
-from ..data.download_data import config
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+from data.download_data import config
+from models.model import *
+from module.loss import quadruplet_loss
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-from timeit import default_timer as timer
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Initialization & Data Augmentations                                                                                  #
@@ -223,7 +222,7 @@ epochs = args.epoch
 learning_rate = args.lr
 criterion = quadruplet_loss if args.quadruplet else nn.TripletMarginLoss(margin=1.0)
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
-weight_path = "./model_weights"
+weight_path = "../model_weights"
 lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lambda epoch: 0.95**epoch, verbose=False)
 
 if os.path.isdir(weight_path) == False:
@@ -275,7 +274,7 @@ def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query
                 loss.backward()
                 optimizer.step()
 
-            if (step+1) % 5 == 0:
+            if (step+1) % 25 == 0:
                 print(f"Epoch:[{epoch}/{epochs}] | Step:[{step+1}/{len(train_loader)}] | Loss:{loss.item():.4f}")
         if scheduler:
             lr_scheduler.step()
@@ -284,11 +283,11 @@ def train(model, epochs, criterion, optimizer, lr_scheduler, train_loader, query
         if mAP >= best_mAP:
             print(f"Best mAP is achieved!!")
             print("Saving Best and Latest Model...")
-            torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}6_best.pth"))
+            torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}_best.pth"))
             changes = mAP - best_mAP
             best_mAP = mAP
 
-        torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}6_latest.pth"))
+        torch.save(model.state_dict(), os.path.join(weight_path, f"{args.model}_latest.pth"))
         print("All Model Checkpoints Saved!")
         print("----------------------------")
         print(f"Best mAP: {best_mAP:.4f}")
@@ -382,13 +381,13 @@ if __name__ == "__main__":
     print(f"12. Quadruplet Loss: {args.quadruplet}\n")
 
     if args.demo:
-        path = "./data/data_reid/reid_training" 
-        gallery_path = "./data/data_reid/reid_test/gallery"
-        query_path = "./data/data_reid/reid_test/query"
+        path = "../data/data_reid/reid_training" 
+        gallery_path = "../data/data_reid/reid_test/gallery"
+        query_path = "../data/data_reid/reid_test/query"
     else:
-        path = "./data/custom_dataset/training"
-        gallery_path = "./data/custom_dataset/gallery"
-        query_path = "./data/custom_dataset/query"
+        path = "../data/custom_dataset/training"
+        gallery_path = "../data/custom_dataset/gallery"
+        query_path = "../data/custom_dataset/query"
         
     avg_width, avg_height, max_width, max_height= get_picture_statistic(image_path=path)
     print("**** Image Statistics ****")
