@@ -85,7 +85,7 @@ Both `image` and `video` cannot be set into `True` at the same time!
 ---
 ```
 cd re_id/tools
-python3 train.py --demo [True/False] --seed 1 --model mobilenetv3 --epoch 100 --train_batch 64 --valid_batch 256 --lr 0.001  --num_workers 4 --quadruplet True --scheduler [True/False] --fp [True/False]
+python3 train.py --demo [True/False] --seed 1 --model mobilenetv3 --epoch 100 --train_batch 64 --valid_batch 256 --lr 0.001 --num_workers 4 --quadruplet True --scheduler [True/False] --fp16 [True/False]
 ```
 * --demo: `True` uses DeepSportsRadar dataset | `False` uses custom dataset
 * --seed: seed number
