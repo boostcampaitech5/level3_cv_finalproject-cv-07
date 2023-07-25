@@ -74,8 +74,9 @@ def get_picture_statistic(image_path):
     avg_height = round(sum(heights)/len(heights),2)
     max_width = max(widths)
     max_height = max(heights)
+    total_images = len(os.listdir(image_path))
 
-    return avg_width, avg_height, max_width, max_height
+    return avg_width, avg_height, max_width, max_height, total_images
 
 #----------------------------------------------------------------------------------------------------------------------#  
 # Datasets                                                                                                             #
@@ -196,8 +197,7 @@ class TRAIN(Dataset):
                 set_images[idx] /= 255.
                 set_images[idx] = torch.from_numpy(set_images[idx])
                 set_images[idx] = torch.permute(set_images[idx], (2,0,1))
-
-               
+                         
         return set_images[0], set_images[1], set_images[2], set_images[3], anchor_id
 
 #----------------------------------------------------------------------------------------------------------------------#  
@@ -389,8 +389,9 @@ if __name__ == "__main__":
         gallery_path = "../data/custom_dataset/gallery"
         query_path = "../data/custom_dataset/query"
         
-    avg_width, avg_height, max_width, max_height= get_picture_statistic(image_path=path)
+    avg_width, avg_height, max_width, max_height, total_train_images= get_picture_statistic(image_path=path)
     print("**** Image Statistics ****")
+    print(f"Total Training Images: {total_train_images}")
     print(f"Average Width: {avg_width}")
     print(f"Average Height: {avg_height}")
     print(f"Max Width: {max_width}")
