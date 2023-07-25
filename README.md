@@ -9,12 +9,12 @@ In this project, we utilized two models to achieve our aim. The first model is u
 ## Ⓜ️ Faiss
 Faiss is a library created by Meta that enables rapid searching of similarity betweeen multiple vector representations. This library was indispensable for our task as it allowed us to accurately determine and match a person's identity. We initially tested with L2 (Euclidean) distance to measure similarity and obtained good results. Nevertheless, upon further experiments, we discovered that utilizing cosine similarity yielded better outputs. Therefore, we have chosen to adopt cosine similarity as our definitive searching method. 
 
-![](pictures/faiss.jpg) 
+![](assets/faiss.jpg) 
 
 ## 🖼️ Object Detection + Person Re-Identification Inference Diagram
 This picture below presents an overview of our project's flow using a diagram. When an input frame is received, it undergoes object detection model, which identifies various entities such as players, basketball, ring, shot attempts and successful shots. Among these, we specifially extract instances of the 'player' class and feed them into the Re-ID model. The Re-ID model then produces embedded vectors representing each person's image. These vectors are added to Faiss, allowing us to obtain top 5 IDs corresponding to each embedded vector. Consequently, we leverage hard voting on these results to obtain the final ID with the highest confidence level.
 
-![](pictures/inference_diagram.jpg) 
+![](assets/inference_diagram.jpg) 
 
 ## 📝 Training Configurations & Results
 ### Person Re-Identification Model
