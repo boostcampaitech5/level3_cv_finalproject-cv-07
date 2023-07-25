@@ -44,7 +44,6 @@ args = parser.parse_args()
 #----------------------------------------------------------------------------------------------------------------------#  
 # Train & Validation Dataset                                                                                           #
 #----------------------------------------------------------------------------------------------------------------------#
-class_names = class_names
 trainset = COCOFormatDetectionDataset(data_dir="../data/dataset/",
                                       images_dir="train",
                                       json_annotation_file="train.json",
