@@ -1,4 +1,5 @@
 # Basketball Players' Field Goal Percentage Tracker✨
+![](assets/final_inference.gif) 
 
 ## 🏀 Background
 Have you ever wondered the accuracy of each player's shooting during a game? Attempting to manually record it would be arduous, as you would need to discern which player took each shot, making the task highly laborious. Besides not everyone has a spare time to watch and analyze a full game match. For these reasons, we have created player's FG tracker using deep learning! :) 
@@ -17,21 +18,25 @@ This picture below presents an overview of our project's flow using a diagram. W
 ![](assets/inference_diagram.jpg) 
 
 ## 📝 Training Configurations & Results
-### Person Re-Identification Model
-| Models | Dataset[^1] | Embedded Dimensions | Epochs | Batch Size | Optimizer | LR | Loss | Augmentations | mAP |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| MobileNetV3 | V1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9829 |
-| MobileVitV2 | V1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9748 |
-| ConvNextV2-A | V1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9721 |
-| SqueezeNet | V1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9758 |
-| MobileNetV3 | V2 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.8743 |
-| MobileNetV3 | V2 | 1000 | 100 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9782 |
-| SqueezeNetMod | V2 | 1000 | 500 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9857 |
-| MobileNetV3 | V2 | 1000 | 500 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9908 |
-[^1]: Dataset V1 and V2 are our own custom datasets. V2 contains more data and identities
+### Object Detection Model
+| Models | Dataset[^1] | Input Dimensions | Epochs | Batch Size (Accumulate) | Optimizer | LR | Loss | Augmentations | F1<sup>val<br>0.5 | mAP<sup>val<br>0.5 | 
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| YOLO NAS-L | D1 | (1920,1088) | 50 | 8 <br> (64)  | AdamW | 0.00001 | PPYOLOE | Resize <br>Normalize <br>HorizontalFlip | 0.2811 | 0.6485 |
+| YOLO NAS-L | D2 | (1920,1088) | 215 | 8 <br> (64) | AdamW | 0.0001 | PPYOLOE | HSV <br> Mosaic <br> RandomAffine <br> HorizontalFlip <br> PaddedRescale <br> Standardize <br> | 0.8709 | 0.9407 |
+[^1]: Dataset D1 and D2 are our own custom datasets. D2 contains 3.1x more data than D1
 
-## Final Result
-![](assets/final_inference.gif) 
+### Person Re-Identification Model
+| Models | Dataset[^2] | Embedded Dimensions | Epochs | Batch Size | Optimizer | LR | Loss | Augmentations | mAP<sup>val |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| MobileNetV3 | R1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9829 |
+| MobileVitV2 | R1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9748 |
+| ConvNextV2-A | R1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9721 |
+| SqueezeNet | R1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9758 |
+| MobileNetV3 | R2 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.8743 |
+| MobileNetV3 | R2 | 1000 | 100 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9782 |
+| SqueezeNetMod | R2 | 1000 | 500 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9857 |
+| MobileNetV3 | R2 | 1000 | 500 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9908 |
+[^2]: Dataset R1 and R2 are our own custom datasets. R2 contains little bit more data and identities
 
 ## 🛠️ Installation
 ```py
