@@ -23,7 +23,7 @@ This picture below presents an overview of our project's flow using a diagram. W
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | YOLO NAS-L | D1 | (1920,1088) | 50 | 8 <br> (64)  | AdamW | 0.00001 | PPYOLOE | Resize <br>Normalize <br>HorizontalFlip | 0.2811 | 0.6485 |
 | YOLO NAS-L | D2 | (1920,1088) | 215 | 8 <br> (64) | AdamW | 0.0001 | PPYOLOE | HSV <br> Mosaic <br> RandomAffine <br> HorizontalFlip <br> PaddedRescale <br> Standardize <br> | 0.8709 | 0.9407 |
-[^1]: Dataset D1 and D2 are our own custom datasets. D2 contains 3.1x more data than D1
+[^1]: Dataset D1 and D2 are our own custom datasets. D2 contains 3.1x more data than D1.
 
 ### Person Re-Identification Model
 | Models | Dataset[^2] | Embedded Dimensions | Epochs | Batch Size | Optimizer | LR | Loss | Augmentations | mAP<sup>val |
@@ -34,9 +34,10 @@ This picture below presents an overview of our project's flow using a diagram. W
 | SqueezeNet | R1 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9758 |
 | MobileNetV3 | R2 | 1000 | 100 | 64 | AdamW | 0.001 | TripletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.8743 |
 | MobileNetV3 | R2 | 1000 | 100 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9782 |
-| SqueezeNetMod | R2 | 1000 | 500 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9857 |
+| SqueezeNetMod[^3] | R2 | 1000 | 500 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9857 |
 | MobileNetV3 | R2 | 1000 | 500 | 64 | AdamW | 0.001 | QuadrupletLoss | Resize <br>Normalize <br>HorizontalFlip | 0.9923 |
-[^2]: Dataset R1 and R2 are our own custom datasets. R2 contains little bit more data and identities
+[^2]: Dataset R1 and R2 are our own custom datasets. R2 contains little bit more data and identities.
+[^3]: SqueezeNet + CBAM with reduction ratio of 8.
 
 ## 🛠️ Installation
 ```py
@@ -94,7 +95,7 @@ python3 train.py --demo [True/False] --seed 1 --model mobilenetv3 --epoch 100 --
 * --valid_batch: valid batch size
 * --lr: learning rate
 * --num_workers: dataloader num workers
-* --quadruplet:  `True` uses quadruplet loss | `False` uses triple loss
+* --quadruplet:  `True` uses quadruplet loss | `False` uses triplet loss
 * --fp: mixed precision training
 
 ### Inference Person Re-Identification Model
