@@ -59,12 +59,12 @@ detection
 |   |    |   ├── <sample1>.jpg
 |   |    |   ├── <sample2>.jpg
 |   |    |   ...
-|   |    |   └── <sample100>.jpg
+|   |    |   └── <sample10>.jpg
 |   |    ├── valid
 |   |    |   ├── <sample1>.jpg
 |   |    |   ├── <sample2>.jpg
 |   |    |   ...
-|   |    |   └── <sample100>.jpg
+|   |    |   └── <sample10>.jpg
 |   |    ├── train.json
 |   |    └── valid.json
 │   ├── images
@@ -75,7 +75,7 @@ detection
 > Person Re-Identifcation Path
 
 Please ensure that the data is organized in the following configuration:
-1. The name of each data entry should be reformatted to a specific format: `xxxxx_xx.jpg` or `xxxxx_xx_xx.jpg.`
+1. The name of each data entry should be reformatted to a specific format: `xxxxx_xx.jpg` or `xxxxx_xx_xx.jpg`.
 2. In this format, the first five numbers represent the ID number of a person and `x` represents any numerical value.
 ```
 re_id
@@ -87,21 +87,21 @@ re_id
 |       |   ├── <00002_01>.jpg
 |       |   ├── <00002_02>.jpg
 |       |   ...
-|       |   └── <00010_10>.jpg
+|       |   └── <00010_2>.jpg
 |       ├── query
 |       |   ├── <00001_01>.jpg
 |       |   ├── <00001_02>.jpg
 |       |   ├── <00002_01>.jpg
 |       |   ├── <00002_02>.jpg
 |       |   ...
-|       |   └── <00010_10>.jpg
+|       |   └── <00010_2>.jpg
 |       └── training
 |           ├── <00001_01>.jpg
 |           ├── <00001_02>.jpg
 |           ├── <00002_01>.jpg
 |           ├── <00002_02>.jpg
 |           ...
-|           └── <00010_10>.jpg
+|           └── <00010_2>.jpg
 ... 
 ```
 
