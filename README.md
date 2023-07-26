@@ -46,14 +46,74 @@ cd level3_cv_finalproject-cv-07
 conda env create --name <env_name> -f env.yaml
 ```
 
+## Dataset Path Settings
+> Object Detection Path
+ 
+Please ensure that the data is organized in the following configuration:
+1. The actual names of the data files do not impact the process. However, it is essential that the corresponding json files be named as `train.json` and `valid.json`. These specific names are necessary to ensure proper functioning during training.
+```
+detection
+├── data
+│   ├── dataset
+|   |    ├── train
+|   |    |   ├── <sample1>.jpg
+|   |    |   ├── <sample2>.jpg
+|   |    |   ...
+|   |    |   └── <sample10>.jpg
+|   |    ├── valid
+|   |    |   ├── <sample1>.jpg
+|   |    |   ├── <sample2>.jpg
+|   |    |   ...
+|   |    |   └── <sample10>.jpg
+|   |    ├── train.json
+|   |    └── valid.json
+│   ├── images
+│   └── video
+...
+```
+
+> Person Re-Identifcation Path
+
+Please ensure that the data is organized in the following configuration:
+1. The name of each data entry should be reformatted to a specific format: `xxxxx_xx.jpg` or `xxxxx_xx_xx.jpg`.
+2. In this format, the first five numbers represent the ID number of a person and `x` represents any numerical value.
+```
+re_id
+├── data
+│   └── custom_dataset
+|       ├── gallery
+|       |   ├── <00001_01>.jpg
+|       |   ├── <00001_02>.jpg
+|       |   ├── <00002_01>.jpg
+|       |   ├── <00002_02>.jpg
+|       |   ...
+|       |   └── <00010_2>.jpg
+|       ├── query
+|       |   ├── <00001_01>.jpg
+|       |   ├── <00001_02>.jpg
+|       |   ├── <00002_01>.jpg
+|       |   ├── <00002_02>.jpg
+|       |   ...
+|       |   └── <00010_2>.jpg
+|       └── training
+|           ├── <00001_01>.jpg
+|           ├── <00001_02>.jpg
+|           ├── <00002_01>.jpg
+|           ├── <00002_02>.jpg
+|           ...
+|           └── <00010_2>.jpg
+... 
+```
+
 ## 👨🏻‍💻 Train & Inference with Just 1 Command Line
+Notes: a text or number inside `<>` is a default setting. Feel free to use your own settings! Also, make sure to choose one from `[/]`.
 ### Train Detection Model
 ---
 ```
 cd detection/tools
-python3 train.py --exp_name exp1 --input_dim (1920,1088) --epochs 100 --lr 0.0001 --batch_size 8 --optimizer AdamW --num_workers 4 --warmup_initial_lr 0.00001 --lr_warmup_epochs 5 --score_thr 0.8 --nms_thr 0.8 -- metric [F1@0.50/Map@0.50] --fp16 [True/False]
+python3 train.py --exp_name <exp1> --input_dim <(1920,1088)> --epochs <100> --lr <0.0001> --batch_size <8> --optimizer <AdamW> --num_workers <4> --warmup_initial_lr <0.00001> --lr_warmup_epochs <5> --score_thr <0.8> --nms_thr <0.8> -- metric [<F1@0.50>/Map@0.50] --fp16 [<True>/False]
 ```
-* --exp_name: experiement directory name
+* --exp_name: experiement directory name. It will appear under `model_weights` directory.
 * --input_dim: input dimensions
 * --epochs: epoch
 * --lr: learning rate
@@ -71,7 +131,7 @@ python3 train.py --exp_name exp1 --input_dim (1920,1088) --epochs 100 --lr 0.000
 ---
 ```
 cd detection/tools
-python3 inference.py --image [True/False] --video [True/False] --file_name image1.png --conf 0.5 --iou 0.5 --model_weight yolo_nas_l_best.pth
+python3 inference.py --image [True/<False>] --video [True/<False>] --file_name <image1.png> --conf <0.25> --iou <0.35> --model_weight <exp_name>/<yolo_nas_l_best.pth>
 ```
 Both `image` and `video` cannot be set into `True` at the same time!
 * --image: inference on image
@@ -85,24 +145,25 @@ Both `image` and `video` cannot be set into `True` at the same time!
 ---
 ```
 cd re_id/tools
-python3 train.py --demo [True/False] --seed 1 --model mobilenetv3 --epoch 100 --train_batch 64 --valid_batch 256 --lr 0.001 --num_workers 4 --quadruplet True --scheduler [True/False] --fp16 [True/False]
+python3 train.py --demo [True/<False>] --seed <1> --model <mobilenetv3> --epoch <100> --train_batch <64> --valid_batch <256> --lr <0.001> --num_workers <8> --quadruplet <False> --scheduler [True/<False>] --fp16 [True/<False>]
 ```
 * --demo: `True` uses DeepSportsRadar dataset | `False` uses custom dataset
 * --seed: seed number
-* --model: model
+* --model: model. To use different models, please take a look at `models.py` in `models` directory.
 * --epoch: epoch
 * --train_batch: train batch size
 * --valid_batch: valid batch size
 * --lr: learning rate
 * --num_workers: dataloader num workers
 * --quadruplet:  `True` uses quadruplet loss | `False` uses triplet loss
-* --fp: mixed precision training
+* --scheduler: lambda scheduler with 0.95**epoch
+* --fp16: mixed precision training
 
 ### Inference Person Re-Identification Model
 ---
 ```
 cd re_id/tools
-python3 inference.py --demo [True/False] --model mobilenetv3 --model_weight mobilenetv3_best.pth --batch_size 256 --num_workers 8 --query_index 0
+python3 inference.py --demo [True/<False>] --model <mobilenetv3> --model_weight <mobilenetv3_best.pth> --batch_size <256> --num_workers <8> --query_index <0>
 ```
 * --demo: `True` uses DeepSportsRadar dataset | `False` uses custom dataset
 * --model: model
