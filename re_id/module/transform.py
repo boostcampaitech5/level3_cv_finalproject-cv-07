@@ -45,7 +45,8 @@ def get_transform(method = 'peachy'):
     
     if method == 'peachy':
         return A.Compose([A.Resize(224,224),
-                          A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
+                          A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+                          ToTensorV2()])
     else:
         return A.Compose([RectResize(size=(224, 224) , padding_value=0, interpolate=cv2.INTER_LINEAR_EXACT, p=1.0),
                           A.Normalize((0.48145466, 0.4578275, 0.40821073), 
