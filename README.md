@@ -46,11 +46,11 @@ cd level3_cv_finalproject-cv-07
 conda env create --name <env_name> -f env.yaml
 ```
 
-## Dataset Path Settings
+## 🗂️ Dataset Path Settings
 > Object Detection Path
  
 Please ensure that the data is organized in the following configuration:
-1. The actual names of the data files do not impact the process. However, it is essential that the corresponding json files be named as `train.json` and `valid.json`. These specific names are necessary to ensure proper functioning during training.
+1. The actual names of the data files do not impact the training process. However, it is essential that the corresponding json files be named as `train.json` and `valid.json`. These specific names are necessary to ensure proper functioning during training.
 ```
 detection
 ├── data
