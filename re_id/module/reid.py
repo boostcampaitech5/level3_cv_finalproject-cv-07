@@ -226,7 +226,7 @@ class ReId:
         print(cluster)
         
         self.player_dict = dict()
-        self.player_dict_init(len(cluster))
+        self.player_dict_init(len(np.unique(cluster, return_counts = True)[0]))
         
         self.origin_embedding = accumulated_query_vector
         
