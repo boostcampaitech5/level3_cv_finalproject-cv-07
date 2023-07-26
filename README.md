@@ -107,10 +107,12 @@ re_id
 
 > Magic Path
 
-Please ensure that the data is organized in the following configuration:
+Please ensure that the data is organized in the following configuration.  
+This is the path where you want to store videos to generate final result, as demonstrated at the beginning of this repository.
 ```
 datasets
-├── <video1>.mp4   
+├── <video1>.mp4
+├── <video2>.mp4
 ... 
 ```
 
