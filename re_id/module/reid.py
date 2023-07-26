@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 import faiss
+import os
+
 from torch.nn.functional import cosine_similarity
 from torchvision.transforms import functional as F
 from collections import Counter
@@ -10,7 +12,7 @@ from .transform import get_transform
 
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
-import os
+
 from PIL import Image
 
 import albumentations as A
@@ -31,15 +33,18 @@ class Player:
 class ReId:
     def __init__(self, model, checkpoint, gallery_path=None, person_thr=0.6, cosine_thr=0.5) -> None:
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
         self.model = model
         self.model.load_state_dict(torch.load(checkpoint), strict=True)         
         self.model = self.model.to(self.device)
+        
+        self.tf = get_transform()
         
         self.origin_embedding = None
         self.embedding = None
         self.cluster = None
         
-        random_tensor = torch.randn(1, 3, 224, 224).to("cuda")
+        random_tensor = torch.randn(1, 3, 224, 224).to(self.device)
         embedding_dim = self.model(random_tensor).shape[-1]
         
         self.player_dict = dict()
@@ -59,13 +64,7 @@ class ReId:
             self.gallery_dataset = GalleryDataset(self.gallery_path, self._get_transform())
             self.faiss_index_init()
             
-        
-    def _get_transform(self):
-    
-        return A.Compose([A.Resize(224,224),
-                A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-                ToTensorV2()
-                ])
+            
     def shot_re_id_inference(self, frame, results): 
         person_img_lst = self.shot_person_query_lst(frame, results)
         detected_query = person_img_lst
@@ -124,7 +123,6 @@ class ReId:
      
     def person_query_lst(self, frame, results,thr):
         img = frame
-        tf = self._get_transform()
     
         person_img_lst = []
         person_idx_lst = []
@@ -137,7 +135,7 @@ class ReId:
                 if (person_img.shape[0] ==0) or (person_img.shape[1] ==0):
                     continue
                 person_idx_lst.append(idx)
-                transformed = tf(image=person_img)
+                transformed = self.tf(image=person_img)
                 tf_person_img = transformed['image']
                 person_img_lst.append(tf_person_img)
     
@@ -160,13 +158,11 @@ class ReId:
     
     def shot_person_query_lst(self, frame, results):
         img = frame
-        tf = A.Compose([A.Resize(224,224),
-                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
         person_img_lst = []
         x1, y1, x2, y2, c, l = results
         x1, y1, x2, y2, l = int(x1), int(y1), int(x2), int(y2), int(l)
         person_img = img[y1:y2, x1:x2, :]
-        transformed = tf(image=person_img)
+        transformed = self.tf(image=person_img)
         tf_person_img = transformed['image']
         tf_person_img = tf_person_img.astype(np.float32)
         tf_person_img = torch.from_numpy(tf_person_img)
@@ -188,14 +184,6 @@ class ReId:
         for frame in frames:
             person_img_lst = []
             for person in frame:
-                # print(person.shape)
-                # person = np.array(person)
-                # transformed = self.tf(image=person)
-                # tf_person_img = transformed['image']
-                # tf_person_img = tf_person_img.astype(np.float32)
-                # tf_person_img = torch.from_numpy(tf_person_img)
-                # tf_person_img = torch.permute(tf_person_img, (2,0,1))
-                # person_img_lst.append(tf_person_img)
                 person_img_lst.append(person)
 
             if person_img_lst == []:
