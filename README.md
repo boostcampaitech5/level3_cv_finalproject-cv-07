@@ -105,13 +105,23 @@ re_id
 ... 
 ```
 
+> Magic Path
+
+Please ensure that the data is organized in the following configuration.  
+This is the path where you want to store videos to generate final result, as demonstrated at the beginning of this repository.
+```
+datasets
+├── <video1>.mp4
+├── <video2>.mp4
+... 
+```
+
 ## 👨🏻‍💻 Train & Inference with Just 1 Command Line
-Notes: a text or number inside `<>` is a default setting. Feel free to use your own settings! Also, make sure to choose one from `[/]`.
 ### Train Detection Model
 ---
 ```
 cd detection/tools
-python3 train.py --exp_name <exp1> --input_dim <(1920,1088)> --epochs <100> --lr <0.0001> --batch_size <8> --optimizer <AdamW> --num_workers <4> --warmup_initial_lr <0.00001> --lr_warmup_epochs <5> --score_thr <0.8> --nms_thr <0.8> -- metric [<F1@0.50>/Map@0.50] --fp16 [<True>/False]
+python3 train.py --exp_name exp1 --input_dim (1920,1088) --epochs 100 --lr 0.0001 --batch_size 8 --optimizer AdamW --num_workers 4 --warmup_initial_lr 0.00001 --lr_warmup_epochs 5 --score_thr 0.8 --nms_thr 0.8 -- metric F1@0.50 --fp16 True
 ```
 * --exp_name: experiement directory name. It will appear under `model_weights` directory.
 * --input_dim: input dimensions
@@ -131,7 +141,7 @@ python3 train.py --exp_name <exp1> --input_dim <(1920,1088)> --epochs <100> --lr
 ---
 ```
 cd detection/tools
-python3 inference.py --image [True/<False>] --video [True/<False>] --file_name <image1.png> --conf <0.25> --iou <0.35> --model_weight <exp_name>/<yolo_nas_l_best.pth>
+python3 inference.py --image True --video False --file_name image1.png --conf 0.25 --iou 0.35 --model_weight <your_exp_name>/<your_detection_weight>
 ```
 Both `image` and `video` cannot be set into `True` at the same time!
 * --image: inference on image
@@ -145,7 +155,7 @@ Both `image` and `video` cannot be set into `True` at the same time!
 ---
 ```
 cd re_id/tools
-python3 train.py --demo [True/<False>] --seed <1> --model <mobilenetv3> --epoch <100> --train_batch <64> --valid_batch <256> --lr <0.001> --num_workers <8> --quadruplet <False> --scheduler [True/<False>] --fp16 [True/<False>]
+python3 train.py --demo False --seed 1 --model mobilenetv3 --epoch 100 --train_batch 64 --valid_batch 256 --lr 0.001 --num_workers 8 --quadruplet True --scheduler False --fp16 False
 ```
 * --demo: `True` uses DeepSportsRadar dataset | `False` uses custom dataset
 * --seed: seed number
@@ -163,7 +173,7 @@ python3 train.py --demo [True/<False>] --seed <1> --model <mobilenetv3> --epoch 
 ---
 ```
 cd re_id/tools
-python3 inference.py --demo [True/<False>] --model <mobilenetv3> --model_weight <mobilenetv3_best.pth> --batch_size <256> --num_workers <8> --query_index <0>
+python3 inference.py --demo False --model mobilenetv3 --model_weight <your_reid_weight> --batch_size 256 --num_workers 8 --query_index 0
 ```
 * --demo: `True` uses DeepSportsRadar dataset | `False` uses custom dataset
 * --model: model
@@ -171,3 +181,15 @@ python3 inference.py --demo [True/<False>] --model <mobilenetv3> --model_weight 
 * --batch size: test batch size
 * --num worker: dataloader num worker
 * --query_index: query index
+
+### Magic Inference
+---
+```
+python3 magic.py --detection_weight <exp_name>/<your_detection_weight> --reid_weight <your_reid_weight> --video_file <your_video_file> --reid_model mobilenetv3 --person_thr 0.5 --cosine_thr 0.5
+```
+* --detection_weight: detection model trained weight
+* --reid_weight: re-id modeld trained weight
+* --video_file: video file to be inferenced
+* --reid_model: re-id model
+* --person_thr: person confidence threshold
+* --cosine_thr: cosine similarity threshold
