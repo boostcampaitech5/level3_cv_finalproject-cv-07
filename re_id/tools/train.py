@@ -46,7 +46,7 @@ parser.add_argument('--fp16', type=bool, default=False)
 parser.add_argument('--model', type=str, default='mobilenetv3') 
 parser.add_argument('--scheduler', type=bool, default=False) 
 parser.add_argument('--num_workers', type=int, default=8) 
-parser.add_argument('--quadruplet', type=bool, default=False) 
+parser.add_argument('--quadruplet', type=bool, default=False)
 args = parser.parse_args()
 
 #----------------------------------------------------------------------------------------------------------------------#  
@@ -216,6 +216,7 @@ model_dict = {"convnextv2_a": ConvNextV2_A(),
               "mobilevitv2": MobileVitV2()}
 
 model = model_dict.get(args.model)
+model.load_state_dict(torch.load(os.path.join("../model_weights", "mobilenetv3_best.pth")))
 assert model != None
 embedding_dim = model(torch.randn(1, 3, 224, 224)).shape[-1]
 epochs = args.epoch

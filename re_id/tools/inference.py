@@ -34,7 +34,7 @@ parser.add_argument('--demo', type=bool, default=False)
 parser.add_argument('--model', type=str, default='mobilenetv3') 
 parser.add_argument('--batch_size', type=int, default=256)  
 parser.add_argument('--num_workers', type=int, default=8) 
-parser.add_argument('--model_weight', type=str, default=None)
+parser.add_argument('--model_weight', type=str, default='mobilenetv3_best.pth')
 parser.add_argument('--query_index', type=int, default=0)
 args = parser.parse_args()
 

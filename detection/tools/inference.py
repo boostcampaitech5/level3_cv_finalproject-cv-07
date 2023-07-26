@@ -22,21 +22,21 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 parser = argparse.ArgumentParser()
 parser.add_argument('--image', type=bool, default=False) 
 parser.add_argument('--video', type=bool, default=False)
-parser.add_argument('--path', type=str, default=None)
+parser.add_argument('--file_name', type=str, default='image1.png')
 parser.add_argument('--conf', type=float, default=0.25)
 parser.add_argument('--iou', type=float, default=0.35)
-parser.add_argument('--model_weight', type=str, default=None)
+parser.add_argument('--model_weight', type=str, default='exp1/yolo_nas_l_best.pth')
 args = parser.parse_args()
 
 if __name__ == "__main__":
     assert args.image != None or args.video != None
-    assert args.path != None or args.model_weight != None
+    assert args.file_name != None or args.model_weight != None
 
     if args.image:
         fig, ax = plt.subplots(1, figsize=(16, 9))
         fig.tight_layout()
 
-        image = cv2.imread(os.path.join("../data/images", args.path))
+        image = cv2.imread(os.path.join("../data/images", args.file_name))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         net = models.get(Models.YOLO_NAS_L, num_classes=len(class_names), checkpoint_path=os.path.join("../model_weights", args.model_weight)).half().to(device)
         net.set_dataset_processing_params(conf=args.conf)
@@ -67,7 +67,7 @@ if __name__ == "__main__":
             ax.text(text_x, text_y, f'{class_name}: {conf:.2f}', fontsize=10, color='white')
             ax.axis('off')
             ax.imshow(image, aspect='auto')
-        fig.savefig(f"../results/{(args.path).split('.')[0]}_result.jpg", bbox_inches='tight', pad_inches=0)
+        fig.savefig(f"../results/{(args.file_name).split('.')[0]}_result.jpg", bbox_inches='tight', pad_inches=0)
         print("Image Inference Completed!")
         print()
 
@@ -76,16 +76,16 @@ if __name__ == "__main__":
         net.set_dataset_processing_params(conf=args.conf)
         net.set_dataset_processing_params(iou=args.iou)
         print(f"Inferencing video using {device}...")
-        prediction1 = net.predict(os.path.join("../data/video",args.path), fuse_model=True)
+        prediction1 = net.predict(os.path.join("../data/video",args.file_name), fuse_model=True)
 
-        cap = cv2.VideoCapture(os.path.join("../data/video",args.path))
+        cap = cv2.VideoCapture(os.path.join("../data/video",args.file_name))
         if not cap.isOpened():
             print("Video is failed to open!")
 
         fps = cap.get(cv2.CAP_PROP_FPS)
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        filename = os.path.join("../data/video",args.path).split('/')[-1].split('.')[0] + '_result.mp4'
+        filename = os.path.join("../data/video",args.file_name).split('/')[-1].split('.')[0] + '_result.mp4'
         video_out = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
         shutil.move(filename, os.path.join("../results", filename))
 
