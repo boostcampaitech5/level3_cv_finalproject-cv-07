@@ -46,6 +46,65 @@ cd level3_cv_finalproject-cv-07
 conda env create --name <env_name> -f env.yaml
 ```
 
+## Dataset Path Settings
+> Detection Path
+ 
+Please ensure that the data is organized in the following configuration:
+1. The actual names of the data files do not impact the process. However, it is essential that the corresponding json files be named as `train.json` and `valid.json`. These specific names are necessary to ensure proper functioning during training.
+```
+detection
+├── data
+│   ├── dataset
+|   |    ├── train
+|   |    |   ├── <sample1>.jpg
+|   |    |   ├── <sample2>.jpg
+|   |    |   ...
+|   |    |   └── <sample100>.jpg
+|   |    ├── valid
+|   |    |   ├── <sample1>.jpg
+|   |    |   ├── <sample2>.jpg
+|   |    |   ...
+|   |    |   └── <sample100>.jpg
+|   |    ├── train.json
+|   |    └── valid.json
+│   ├── images
+│   └── video
+...
+```
+
+> Person Re-Identifcation Path
+
+Please ensure that the data is organized in the following configuration:
+1. The name of each data entry should be reformatted to a specific format: "xxxxx_xx.jpg" or "xxxxx_xx_xx.jpg."
+2. In this format, the first five numbers represent the ID number of a person and 'x' represents any numerical value.
+```
+re_id
+├── data
+│   └── custom_dataset
+|       ├── gallery
+|       |   ├── <00001_01>.jpg
+|       |   ├── <00001_02>.jpg
+|       |   ├── <00002_01>.jpg
+|       |   ├── <00002_02>.jpg
+|       |   ...
+|       |   └── <00010_10>.jpg
+|       ├── query
+|       |   ├── <00001_01>.jpg
+|       |   ├── <00001_02>.jpg
+|       |   ├── <00002_01>.jpg
+|       |   ├── <00002_02>.jpg
+|       |   ...
+|       |   └── <00010_10>.jpg
+|       └── training
+|           ├── <00001_01>.jpg
+|           ├── <00001_02>.jpg
+|           ├── <00002_01>.jpg
+|           ├── <00002_02>.jpg
+|           ...
+|           └── <00010_10>.jpg
+... 
+```
+
 ## 👨🏻‍💻 Train & Inference with Just 1 Command Line
 ### Train Detection Model
 ---
