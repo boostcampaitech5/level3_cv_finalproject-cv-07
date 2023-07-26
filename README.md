@@ -149,7 +149,7 @@ python3 train.py --demo [True/<False>] --seed <1> --model <mobilenetv3> --epoch 
 ```
 * --demo: `True` uses DeepSportsRadar dataset | `False` uses custom dataset
 * --seed: seed number
-* --model: model. To use different models, please take a look at `models.py` in `models` directory.
+* --model: model. To use different models, please take a look at `model.py` in models directory.
 * --epoch: epoch
 * --train_batch: train batch size
 * --valid_batch: valid batch size
