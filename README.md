@@ -75,8 +75,8 @@ detection
 > Person Re-Identifcation Path
 
 Please ensure that the data is organized in the following configuration:
-1. The name of each data entry should be reformatted to a specific format: "xxxxx_xx.jpg" or "xxxxx_xx_xx.jpg."
-2. In this format, the first five numbers represent the ID number of a person and 'x' represents any numerical value.
+1. The name of each data entry should be reformatted to a specific format: `xxxxx_xx.jpg` or `xxxxx_xx_xx.jpg.`
+2. In this format, the first five numbers represent the ID number of a person and `x` represents any numerical value.
 ```
 re_id
 ├── data
