@@ -21,6 +21,28 @@ id_color = [
 ]
 
 
+def collect_gallery_data(detect_model, re_id, video_path):
+    print('collecting gallery data')
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames_num = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_num = cap.get(cv2.CAP_PROP_POS_FRAMES)
+
+    gallery_img_lst = []
+    
+    for index, f in enumerate(tqdm.tqdm(range(total_frames_num))):
+        # if np.random.uniform() < 0.1:
+        if index%60==0:         ## select one frame per sec   1 * 60 * 6 360
+            ret, frame = cap.read()
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = detect_model.predict(img)
+            person_idx_lst, person_img_lst = re_id.person_query_lst(img, results, 0.9)
+            gallery_img_lst.append(person_img_lst)
+
+    print('Done')
+    return gallery_img_lst
+
+
 def make_predicted_video(detect_model, re_id, video_path, save_path):
     try:
         cap = cv2.VideoCapture(video_path)
@@ -39,6 +61,9 @@ def make_predicted_video(detect_model, re_id, video_path, save_path):
         frame_num = cap.get(cv2.CAP_PROP_POS_FRAMES)
         first_frame = True
         re_id.shot_id = -1
+        
+        gallery_samples = collect_gallery_data(detect_model, re_id,video_path)
+        re_id.init_gallery(gallery_samples)
         
         with tqdm(total = total_frames_num) as pbar:
             while total_frames_num != frame_num:
