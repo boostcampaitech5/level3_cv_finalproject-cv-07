@@ -3,10 +3,10 @@
 
 *Read this in other languages: [English](README_en.md), [한국어](README.md)*
 
-## 🏀 Background
+## 🏀 배경
 &nbsp;농구 경기에서 선수가 얼마나 골을 잘 넣을까 생각해 보신 적이 있나요? 만약 어떤 선수의 야투율을 수작업으로 계산한다고 하면 많은 시간과 노력이 필요할 것입니다. 게다가 바쁜 현대인들은 본인 혹은 선수들에 대한 모든 경기 영상을 시청하고 분석할 시간이 없습니다. 이처럼 농구 경기에 대해 분석하고 싶지만, 시간이 없어 망설이는 사람들을 위해 저희는 딥러닝을 사용한 영상 기반 농구 점수 자동 기록 AI 서비스를 개발했습니다! 😊
 
-## 🧠 Models
+## 🧠 모델
  &nbsp;우리는 목표를 달성하기 위해 두 가지의 모델을 사용했습니다. 첫 번째 모델은 선수, 공, 골대, 슛, 골을 감지하는 데 사용하였습니다. 두 번째 모델은 프레임별로 개인의 id를 추적하는 데 사용하였습니다. 즉, 우리는 야투율 추적기를 구현하기 위해 Object Detection과 Person Re-Identification 모델을 사용했습니다. Object Detection 모델은 Deci-AI에서 개발한 super-gradients의 **YOLO-NAS-L**를 사용했습니다. 또한 Person Re-Identification 모델은 더 빠른 추론 속도와 더 작은 모델 크기를 보장하기 위해 **MobileNetV3**를 사용했습니다.   
 
 ## Ⓜ️ Faiss
@@ -14,12 +14,12 @@
 
 ![](assets/faiss.jpg) 
 
-## 🖼️ Object Detection + Person Re-Identification Inference Diagram
- &nbsp;아래는 우리 프로젝트의 흐름을 나타내는 Diagram입니다. 입력 프레임이 주어지면, Detection 모델을 통해 선수, 공, 골대, 슛, 골 클래스를 감지합니다. 이 중 선수 클래스의 인스턴스를 추출하여 Re-ID 모델에 입력으로 제공합니다. 이어서 Re-ID 모델은 개개인의 이미지를 나타내는 임베딩 벡터를 생성합니다. 해당 벡터들은 Faiss에 추가되어, 각 임베딩 벡터에 해당하는 상위 5개의 ID를 얻을 수 있게 됩니다. 이렇게 얻어진 결과들에 대해 최종적으로 가장 높은 신뢰도를 가진 ID를 확정하기 위해 hard voting을 활용합니다.
+## 🖼️ Object Detection + Person Re-Identification 추론 다이어그램
+ &nbsp;아래는 우리 프로젝트의 흐름을 나타내는 다이어그램입니다. 입력 프레임이 주어지면, Detection 모델을 통해 선수, 공, 골대, 슛, 골 클래스를 감지합니다. 이 중 선수 클래스의 인스턴스를 추출하여 Re-ID 모델에 입력으로 제공합니다. 이어서 Re-ID 모델은 개개인의 이미지를 나타내는 임베딩 벡터를 생성합니다. 해당 벡터들은 Faiss에 추가되어, 각 임베딩 벡터에 해당하는 상위 5개의 ID를 얻을 수 있게 됩니다. 이렇게 얻어진 결과들에 대해 최종적으로 가장 높은 신뢰도를 가진 ID를 확정하기 위해 hard voting을 활용합니다.
 
 ![](assets/inference_diagram.jpg) 
 
-## 📝 Training Configurations & Results
+## 📝 학습 실험 결과
 ### Object Detection 모델
 | Models | Dataset[^1] | Input Dimensions | Epochs | Batch Size (Accumulate) | Optimizer | LR | Loss | Augmentations | F1<sup>val<br>0.5 | mAP<sup>val<br>0.5 | 
 | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
@@ -43,14 +43,14 @@
 [^2]: Dataset R1 and R2 are our own custom datasets. R2 contains little bit more data and identities.
 [^3]: SqueezeNet + CBAM with reduction ratio of 8.
 
-## 🛠️ Installation
+## 🛠️ 설치
 ```py
 git clone https://github.com/boostcampaitech5/level3_cv_finalproject-cv-07.git
 cd level3_cv_finalproject-cv-07
 conda env create --name <env_name> -f env.yaml
 ```
 
-## 🗂️ Dataset Path Settings
+## 🗂️ Dataset 경로 설정
 > Object Detection 경로
  
 Dataset을 다음과 같은 경로에 구성해 주세요:
@@ -112,9 +112,9 @@ re_id
 
 <br>
 
-> Magic Path
+> Magic 경로
 
-해당 경로는 최종 결과 비디오를 저장하려는 경로입니다.
+이곳에 추론할 비디오를 저장해 주세요.
 ```
 datasets
 ├── <video1>.mp4
@@ -122,7 +122,7 @@ datasets
 ... 
 ```
 
-## 👨🏻‍💻 Train & Inference with Just 1 Command Line
+## 👨🏻‍💻 단 하나의 Command Line으로 학습 및 추론
 ### Detection Model 학습
 ---
 ```
@@ -196,7 +196,7 @@ python3 inference.py --demo False --model mobilenetv3 --model_weight <your_reid_
 
 <br>
 
-### Magic Inference
+### Magic 추론 (최종 결과 도출)
 ---
 ```
 python3 magic.py --detection_weight <exp_name>/<your_detection_weight> --reid_weight <your_reid_weight> --video_file <your_video_file> --reid_model mobilenetv3 --person_thr 0.5 --cosine_thr 0.5
@@ -210,7 +210,7 @@ python3 magic.py --detection_weight <exp_name>/<your_detection_weight> --reid_we
 
 <br>
   
-## Members
+## 멤버
 | 고금강 | 김동우 | 박준일 | 임재규 | 최지욱 |
 |:--:|:--:|:--:|:--:|:--:|
 |<img  src='https://avatars.githubusercontent.com/u/101968683?v=4'  height=80  width=80px></img>|<img  src='https://avatars.githubusercontent.com/u/113488324?v=4'  height=80  width=80px></img>|<img  src='https://avatars.githubusercontent.com/u/106866130?v=4'  height=80  width=80px></img>|<img  src='https://avatars.githubusercontent.com/u/77265704?v=4'  height=80  width=80px></img>|<img  src='https://avatars.githubusercontent.com/u/78603611?v=4'  height=80  width=80px></img>|
