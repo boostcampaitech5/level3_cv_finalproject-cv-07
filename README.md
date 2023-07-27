@@ -4,18 +4,26 @@
 ## 🏀 Background
 Have you ever wondered the accuracy of each player's shooting during a game? Attempting to manually record it would be arduous, as you would need to discern which player took each shot, making the task highly laborious. Besides not everyone has a spare time to watch and analyze a full game match. For these reasons, we have created player's FG tracker using deep learning! :) 
 
+<br>
+
 ## 🧠 Models
 In this project, we utilized two models to achieve our aim. The first model is used to detect players, basketball, ring, shooting attempts, and successful shots made, whereas the second model focused on matching a person's identity across different locations in a video. In essence, we employed Object Detection and Person Re-Identification models to accomplish this project. For our object detection model, we used YOLO-NAS-L, which was trained using super-gradients library made by Deci-AI. As for Person Re-Identification, we opted for MobileNetV3 to ensure faster inference speed and a more compact model size.    
+
+<br>
 
 ## Ⓜ️ Faiss
 Faiss is a library created by Meta that enables rapid searching of similarity betweeen multiple vector representations. This library was indispensable for our task as it allowed us to accurately determine and match a person's identity. We initially tested with L2 (Euclidean) distance to measure similarity and obtained good results. Nevertheless, upon further experiments, we discovered that utilizing cosine similarity yielded better outputs. Therefore, we have chosen to adopt cosine similarity as our definitive searching method. 
 
 ![](assets/faiss.jpg) 
 
+<br>
+
 ## 🖼️ Object Detection + Person Re-Identification Inference Diagram
 This picture below presents an overview of our project's flow using a diagram. When an input frame is received, it undergoes object detection model, which identifies various entities such as players, basketball, ring, shot attempts and successful shots. Among these, we specifially extract instances of the 'player' class and feed them into the Re-ID model. The Re-ID model then produces embedded vectors representing each person's image. These vectors are added to Faiss, allowing us to obtain top 5 IDs corresponding to each embedded vector. Consequently, we leverage hard voting on these results to obtain the final ID with the highest confidence level.
 
 ![](assets/inference_diagram.jpg) 
+
+<br>
 
 ## 📝 Training Configurations & Results
 ### Object Detection Model
@@ -39,12 +47,16 @@ This picture below presents an overview of our project's flow using a diagram. W
 [^2]: Dataset R1 and R2 are our own custom datasets. R2 contains little bit more data and identities.
 [^3]: SqueezeNet + CBAM with reduction ratio of 8.
 
+<br>
+
 ## 🛠️ Installation
 ```py
 git clone https://github.com/boostcampaitech5/level3_cv_finalproject-cv-07.git
 cd level3_cv_finalproject-cv-07
 conda env create --name <env_name> -f env.yaml
 ```
+
+<br>
 
 ## 🗂️ Dataset Path Settings
 > Object Detection Path
@@ -71,6 +83,8 @@ detection
 │   └── video
 ...
 ```
+
+<br>
 
 > Person Re-Identifcation Path
 
@@ -105,6 +119,8 @@ re_id
 ... 
 ```
 
+<br>
+
 > Magic Path
 
 Please ensure that the data is organized in the following configuration.  
@@ -115,6 +131,8 @@ datasets
 ├── <video2>.mp4
 ... 
 ```
+
+<br>
 
 ## 👨🏻‍💻 Train & Inference with Just 1 Command Line
 ### Train Detection Model
@@ -137,6 +155,8 @@ python3 train.py --exp_name exp1 --input_dim (1920,1088) --epochs 100 --lr 0.000
 * --metric: evaluation metric
 * --fp16: mixed precision training
 
+<br>
+
 ### Inference Detection Model
 ---
 ```
@@ -150,6 +170,8 @@ Both `image` and `video` cannot be set into `True` at the same time!
 * --conf: confidence threshold
 * --iou: iou threshold
 * --model_weight: model weight file
+
+<br>
 
 ### Train Person Re-Identification Model
 ---
@@ -169,6 +191,8 @@ python3 train.py --demo False --seed 1 --model mobilenetv3 --epoch 100 --train_b
 * --scheduler: lambda scheduler with 0.95**epoch
 * --fp16: mixed precision training
 
+<br>
+
 ### Inference Person Re-Identification Model
 ---
 ```
@@ -182,13 +206,15 @@ python3 inference.py --demo False --model mobilenetv3 --model_weight <your_reid_
 * --num worker: dataloader num worker
 * --query_index: query index
 
+<br>
+
 ### Magic Inference
 ---
 ```
 python3 magic.py --detection_weight <exp_name>/<your_detection_weight> --reid_weight <your_reid_weight> --video_file <your_video_file> --reid_model mobilenetv3 --person_thr 0.5 --cosine_thr 0.5
 ```
 * --detection_weight: detection model trained weight
-* --reid_weight: re-id modeld trained weight
+* --reid_weight: re-id model trained weight
 * --video_file: video file to be inferenced
 * --reid_model: re-id model
 * --person_thr: person confidence threshold
