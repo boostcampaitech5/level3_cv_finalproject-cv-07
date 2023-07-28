@@ -61,7 +61,7 @@ class ReId:
 
         
         if self.gallery_path:
-            self.gallery_dataset = GalleryDataset(self.gallery_path, self._get_transform())
+            self.gallery_dataset = GalleryDataset(self.gallery_path, self.tf)
             self.faiss_index_init()
             
             
@@ -94,7 +94,8 @@ class ReId:
 
         C, I = self.faiss_index.search(detected_query_vector, 5)
         I = np.where(C > self.cosine_thr, I, -1)
-        matched_list = self.hard_voting(I)
+        C = np.where(C > self.cosine_thr, C, -1)
+        matched_list = self.hard_voting(I, C)
 
         id_index_dict = dict()
         fail_person = []
@@ -141,12 +142,13 @@ class ReId:
     
         return person_idx_lst, person_img_lst
 
-    def hard_voting(self, matched_list):
+    def hard_voting(self, matched_list, cosine_list):
         final = []
-        for list in matched_list:
+        for list, c_list in zip(matched_list, cosine_list):
             tmp = []
-            for j in list:
-                if j >=0:
+            for j, k in zip(list, c_list):
+                # print(c_list)
+                if k >=0.9:
                     tmp.append(j)
             if not tmp:
                 final.append(-1)
@@ -198,20 +200,8 @@ class ReId:
 
         faiss.normalize_L2(accumulated_query_vector) 
 
-        print(accumulated_query_vector.shape)  ## (person, dim)
-        # print(cluster.shape)
         cluster = DBSCAN(eps=0.007, min_samples=25).fit_predict(accumulated_query_vector)
-        # cluster = DBSCAN(eps=0.07, min_samples=10).fit_predict(accumulated_query_vector)
-        # cluster = GaussianMixture(n_components=10, random_state=0).fit_predict(accumulated_query_vector)
-        # cluster = HDBSCAN(min_cluster_size=15, min_samples=15,cluster_selection_epsilon=1).fit_predict(accumulated_query_vector)
-        # cluster = KMeans(n_clusters=10, random_state=0, n_init="auto").fit_predict(accumulated_query_vector)
-        print(cluster.shape)
         cluster = np.asarray(cluster.astype('int64'))
-
-        # reshape to (batch, 1)
-        # cluster = cluster.reshape(-1, 1)
-        
-        print(cluster)
         
         self.player_dict = dict()
         self.player_dict_init(len(np.unique(cluster, return_counts = True)[0]))
@@ -220,12 +210,6 @@ class ReId:
         
         accumulated_query_vector = accumulated_query_vector[cluster != -1]
         cluster = cluster[cluster != -1]
-        
-        print(np.unique(cluster, return_counts = True))
-        print(accumulated_query_vector.shape)
-        print(cluster.shape)
-        
-        
         
         self.embedding = accumulated_query_vector
         self.cluster = cluster
@@ -254,11 +238,8 @@ class ReId:
             faiss.normalize_L2(vector)
             self.faiss_index.add_with_ids(vector, np.array(label))
         
-        assert 10 == max(faiss.vector_to_array(self.faiss_index.id_map))
-        
         print('Done')
 
-    
 
 class GalleryDataset(Dataset):
     def __init__(self, gallery_path, transform):
