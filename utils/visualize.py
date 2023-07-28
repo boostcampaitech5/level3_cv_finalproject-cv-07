@@ -31,8 +31,8 @@ def collect_gallery_data(detect_model, re_id, video_path):
     gallery_img_lst = []
     
     for index, f in enumerate(tqdm(range(total_frames_num))):
-        # if np.random.uniform() < 0.1:
-        if index%60==0:         ## select one frame per sec   1 * 60 * 6 360
+        interval = 15
+        if index%interval==0:         
             ret, frame = cap.read()
             img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = detect_model.predict(img)
@@ -97,39 +97,11 @@ def make_predicted_video(detect_model, re_id, video_path, save_path):
             #사람 제외한 label 그리기
             side_outs = side_results(outs)
             draw_img = draw_bbox_label(id_img, side_outs, thr=0.5)            
-    
-            #scor board 동적 그리기
-            s_w, s_h = (50,65)
-            ply_num = 0
-    
+           
             #Score board 그리기
-            if len(re_id.player_dict.keys()) <=5:
-                # cv2.rectangle(draw_img, (30,30), (510,280),(0,0,0), -1)
-                cv2.putText(draw_img, 'Score Board', (s_w,s_h), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), thickness=3, lineType=cv2.LINE_AA)
-                cv2.putText(draw_img, 'Score Board', (s_w,s_h), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
-                for i in sorted(re_id.player_dict.keys()):
-                    cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (50,105+ply_num*40), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), thickness=3, lineType=cv2.LINE_AA)
-                    cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (50,105+ply_num*40), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
-                    ply_num+=1
-                
-            else:
-                # cv2.rectangle(draw_img, (30,30), (750,270),(0,0,0), -1)
-                cv2.putText(draw_img, 'Score Board', (s_w,s_h), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), thickness=3, lineType=cv2.LINE_AA)
-                cv2.putText(draw_img, 'Score Board', (s_w,s_h), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
-                
-                for i in sorted(re_id.player_dict.keys()):
-                    if ply_num < 5:
-                        cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (50,105+ply_num*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0, 0, 0), thickness=3, lineType=cv2.LINE_AA)
-                        cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (50,105+ply_num*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
-                        ply_num+=1
-                    else:
-                        cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (400,105+(ply_num-5)*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0, 0, 0), thickness=3, lineType=cv2.LINE_AA)
-                        cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (400,105+(ply_num-5)*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
-                        ply_num+=1
-            
-            cv2.putText(draw_img, f'Shoot_ID_: {re_id.shot_id}', (10,800), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
-            cv2.putText(draw_img, f'Shoot_Count: {tracker.shot_count}', (10,830), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
-            cv2.putText(draw_img, f'Made_Count: {tracker.made_count}', (10,860), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
+            draw_img = draw_scoreboard(draw_img, re_id)
+        
+            #RGB 전환
             draw_img = cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB)
             video_out.write(draw_img)
             pbar.update(1)
@@ -193,7 +165,7 @@ def draw_id(img, id_dict, thr=0.5):
     return img
     
 
-def draw_scoreboard(draw_img, re_id):
+def draw_scoreboard(draw_img, re_id, side=False):
     s_w, s_h = (50,65)
     ply_num = 0
     
@@ -218,9 +190,14 @@ def draw_scoreboard(draw_img, re_id):
                 cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (400,105+(ply_num-5)*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0, 0, 0), thickness=3, lineType=cv2.LINE_AA)
                 cv2.putText(draw_img, f'ID-{i} Shoot Try:{re_id.player_dict[i].stm} | Goal:{re_id.player_dict[i].smm}', (400,105+(ply_num-5)*30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
                 ply_num+=1
+
+    if side:
+        cv2.putText(draw_img, f'Shoot_ID_: {re_id.shot_id}', (10,800), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
+        cv2.putText(draw_img, f'Shoot_Count: {tracker.shot_count}', (10,830), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
+        cv2.putText(draw_img, f'Made_Count: {tracker.made_count}', (10,860), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
+    
     
     return draw_img
-
 
 def side_results(results):
     side_idx = (results[:,-1] != 3)

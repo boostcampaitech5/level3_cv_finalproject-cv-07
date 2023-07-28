@@ -168,24 +168,25 @@ class StatsTracker():
     def shoot_id_check_reid(self, re_id, img, person_data, sh_data):
         #shooting 동작과 가장 가까운 person_data 찾기
         iou_lst = []
-        person_lst = []
         for p in person_data:
             iou = self.cal_iou(p, sh_data)
             iou_lst.append(iou)
-            person_lst.append(p)
         max_ps_idx = np.argmax(iou_lst)
-        sh_person_data = person_lst[max_ps_idx] 
-        
-        #reid process    
-        person_idx_lst, person_img_lst = re_id.person_query_lst(img, [sh_person_data], thr=0.5)
-        detected_query = person_img_lst
-        detected_query_stack = torch.stack(detected_query, dim=0).to('cuda')
+
+        #reid process
+        person_idx_lst, person_img_lst1 = re_id.person_query_lst(img, person_data, thr=0.5)
+        detected_query1 = person_img_lst1
+        detected_query_stack1 = torch.stack(detected_query1, dim=0).to('cuda')
+    
         with torch.no_grad():
-            detected_query_vector = re_id.model(detected_query_stack).detach().cpu().numpy()                       
-        faiss.normalize_L2(detected_query_vector)
-        C, I = re_id.faiss_index.search(detected_query_vector, 3)
-        matched_list = re_id.hard_voting(I)
-        return matched_list[0]
+            detected_query_vector1 = re_id.model(detected_query_stack1).detach().cpu().numpy()                       
+        faiss.normalize_L2(detected_query_vector1)
+        
+        C, I = re_id.faiss_index.search(detected_query_vector1, 5)
+    
+        matched_list1 = re_id.hard_voting(I)
+        print(matched_list1[max_ps_idx])
+        return matched_list1[max_ps_idx]
 
     
     def shot_made_check(self, made_data, thr):
