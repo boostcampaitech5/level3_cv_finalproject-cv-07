@@ -31,8 +31,8 @@ def collect_gallery_data(detect_model, re_id, video_path):
     gallery_img_lst = []
     
     for index, f in enumerate(tqdm(range(total_frames_num))):
-        # if np.random.uniform() < 0.1:
-        if index%60==0:         ## select one frame per sec   1 * 60 * 6 360
+        interval = 15
+        if index%interval==0:         
             ret, frame = cap.read()
             img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = detect_model.predict(img)
