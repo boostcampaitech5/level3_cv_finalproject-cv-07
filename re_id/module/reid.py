@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import faiss
 import os
+import cv2
 
 from torch.nn.functional import cosine_similarity
 from torchvision.transforms import functional as F
@@ -62,8 +63,7 @@ class ReId:
             self.player_dict_init(10)
             self.gallery_dataset = GalleryDataset(self.gallery_path, self.tf)
             self.faiss_index_init()
-            
-            
+                   
     def shot_re_id_inference(self, frame, results): 
         person_img_lst = self.shot_person_query_lst(frame, results)
         detected_query = person_img_lst
@@ -171,8 +171,6 @@ class ReId:
         person_img_lst.append(tf_person_img)
         return person_img_lst
     
-    
-    
     def init_gallery(self, frames):
         """_summary_
 
@@ -236,6 +234,26 @@ class ReId:
             self.faiss_index.add_with_ids(vector, np.array(label))
         
         print('Done')
+        
+    def collect_gallery_data(self, detect_model, video_path):
+        print('Collecting Gallery Data...')
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames_num = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_num = cap.get(cv2.CAP_PROP_POS_FRAMES)
+
+        gallery_img_lst = []
+        
+        for index, f in enumerate(tqdm(range(total_frames_num))):
+            interval = 15
+            if index%interval==0:         
+                ret, frame = cap.read()
+                img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                results = detect_model.predict(img)
+                person_idx_lst, person_img_lst = self.person_query_lst(img, results, 0.9)
+                gallery_img_lst.append(person_img_lst)
+
+        return gallery_img_lst
 
 
 class GalleryDataset(Dataset):

@@ -20,28 +20,6 @@ id_color = [
     (0, 125, 92), (209, 0, 151), (188, 208, 182), (0, 220, 176),
 ]
 
-
-def collect_gallery_data(detect_model, re_id, video_path):
-    print('Collecting Gallery Data...')
-    cap = cv2.VideoCapture(video_path)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    total_frames_num = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_num = cap.get(cv2.CAP_PROP_POS_FRAMES)
-
-    gallery_img_lst = []
-    
-    for index, f in enumerate(tqdm(range(total_frames_num))):
-        interval = 15
-        if index%interval==0:         
-            ret, frame = cap.read()
-            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = detect_model.predict(img)
-            person_idx_lst, person_img_lst = re_id.person_query_lst(img, results, 0.9)
-            gallery_img_lst.append(person_img_lst)
-
-    return gallery_img_lst
-
-
 def make_predicted_video(detect_model, re_id, video_path, save_path):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -60,7 +38,7 @@ def make_predicted_video(detect_model, re_id, video_path, save_path):
     first_frame = True
     re_id.shot_id = -1
     
-    gallery_samples = collect_gallery_data(detect_model, re_id,video_path)
+    gallery_samples = re_id.collect_gallery_data(detect_model, video_path)
     re_id.init_gallery(gallery_samples)
     
     print("Inferencing...")
@@ -162,10 +140,8 @@ def draw_id(img, id_dict, thr=0.5):
         cv2.rectangle(img, p1, p2, id_color[id], -1, cv2.LINE_AA) 
         cv2.putText(img, f'ID_{str(id)}', (p1[0], p1[1] - 2 if outside else p1[1] + h + 2), 0, thick / 3, txt_color, thickness=tf, lineType=cv2.LINE_AA)
         
-
     return img
     
-
 def draw_scoreboard(draw_img, re_id, side=False):
     s_w, s_h = (50,65)
     ply_num = 0
@@ -196,7 +172,6 @@ def draw_scoreboard(draw_img, re_id, side=False):
         cv2.putText(draw_img, f'Shoot_ID_: {re_id.shot_id}', (10,800), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
         cv2.putText(draw_img, f'Shoot_Count: {tracker.shot_count}', (10,830), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
         cv2.putText(draw_img, f'Made_Count: {tracker.made_count}', (10,860), 0, 1, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
-    
     
     return draw_img
 
