@@ -22,7 +22,7 @@ id_color = [
 
 
 def collect_gallery_data(detect_model, re_id, video_path):
-    print('collecting gallery data')
+    print('COLLECTING GALLERY DATA...')
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames_num = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -39,7 +39,6 @@ def collect_gallery_data(detect_model, re_id, video_path):
             person_idx_lst, person_img_lst = re_id.person_query_lst(img, results, 0.9)
             gallery_img_lst.append(person_img_lst)
 
-    print('Done')
     return gallery_img_lst
 
 
@@ -63,6 +62,8 @@ def make_predicted_video(detect_model, re_id, video_path, save_path):
     
     gallery_samples = collect_gallery_data(detect_model, re_id,video_path)
     re_id.init_gallery(gallery_samples)
+    
+    print("Inferencing...")
     
     with tqdm(total = total_frames_num) as pbar:
         while total_frames_num != frame_num:

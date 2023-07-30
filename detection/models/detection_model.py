@@ -16,7 +16,6 @@ class Yolo_Nas_L(nn.Module):
         if self.checkpoint_path:
             model =  models.get(Models.YOLO_NAS_L, num_classes=self.num_classes,
                     checkpoint_path=self.checkpoint_path).cuda()
-            print('weight loaded!!')
 
         else:
             model =  models.get(Models.YOLO_NAS_L, num_classes=self.num_classes).cuda()

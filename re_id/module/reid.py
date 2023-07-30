@@ -48,7 +48,6 @@ class ReId:
         embedding_dim = self.model(random_tensor).shape[-1]
         
         self.player_dict = dict()
-        self.player_dict_init(10)
         
         self.person_thr = person_thr
         self.cosine_thr = cosine_thr
@@ -59,8 +58,8 @@ class ReId:
 
         self.gallery_path = gallery_path
 
-        
         if self.gallery_path:
+            self.player_dict_init(10)
             self.gallery_dataset = GalleryDataset(self.gallery_path, self.tf)
             self.faiss_index_init()
             
@@ -216,15 +215,12 @@ class ReId:
         self.cluster = cluster
         
         # cluster = cluster.reshape(-1, 1)
-        self.faiss_index.add_with_ids(accumulated_query_vector, cluster)
-            
-        print('Gallery initialized')
-        
+        self.faiss_index.add_with_ids(accumulated_query_vector, cluster)        
         
     def player_dict_init(self, num):
         for i in range(0,num):
             self.player_dict[i] = Player(i)
-        print(f'Setting {num} Players')
+        print(f'Setting {num} Players...')
 
     def faiss_index_init(self):
         print('gallery imgs are added to faiss_index')

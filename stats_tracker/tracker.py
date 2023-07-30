@@ -185,7 +185,7 @@ class StatsTracker():
         C, I = re_id.faiss_index.search(detected_query_vector1, 5)
     
         matched_list1 = re_id.hard_voting(I,C)
-        print(matched_list1[max_ps_idx])
+        # print(matched_list1[max_ps_idx])
         return matched_list1[max_ps_idx]
 
     
