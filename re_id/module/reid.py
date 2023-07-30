@@ -45,7 +45,7 @@ class ReId:
         self.cluster = None
         
         random_tensor = torch.randn(1, 3, 224, 224).to(self.device)
-        embedding_dim = self.model(random_tensor).shape[-1]
+        self.embedding_dim = self.model(random_tensor).shape[-1]
         
         self.player_dict = dict()
         
@@ -53,7 +53,7 @@ class ReId:
         self.cosine_thr = cosine_thr
         
         res = faiss.StandardGpuResources()
-        self.faiss_index = faiss.GpuIndexFlatIP(res, embedding_dim)
+        self.faiss_index = faiss.GpuIndexFlatIP(res, self.embedding_dim)
         self.faiss_index = faiss.IndexIDMap(self.faiss_index)
 
         self.gallery_path = gallery_path
@@ -180,7 +180,7 @@ class ReId:
             frames (list):   (3, W, H) * (person) * (frames num)
         """
         
-        accumulated_query_vector = np.empty((0, 1000), dtype=np.float32)
+        accumulated_query_vector = np.empty((0, self.embedding_dim), dtype=np.float32)
         
         for frame in frames:
             person_img_lst = []
