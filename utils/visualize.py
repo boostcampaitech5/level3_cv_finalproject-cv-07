@@ -22,7 +22,7 @@ id_color = [
 
 
 def collect_gallery_data(detect_model, re_id, video_path):
-    print('COLLECTING GALLERY DATA...')
+    print('Collecting Gallery Data...')
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames_num = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
