@@ -216,7 +216,6 @@ model_dict = {"convnextv2_a": ConvNextV2_A(),
               "mobilevitv2": MobileVitV2()}
 
 model = model_dict.get(args.model)
-model.load_state_dict(torch.load(os.path.join("../model_weights", "mobilenetv3_best.pth")))
 assert model != None
 embedding_dim = model(torch.randn(1, 3, 224, 224)).shape[-1]
 epochs = args.epoch
